@@ -1,0 +1,111 @@
+---
+import Imagen from './Imagen.astro'
+
+const { proyectos = [], artista } = Astro.props
+const retrato = artista?.retrato
+const bio = artista?.bioCorta || ''
+
+function ficha(proyecto) {
+	const origen = proyecto.anio ? `Video, ${proyecto.anio}` : 'Video'
+	return proyecto.duracion ? `${origen} · ${proyecto.duracion} min` : origen
+}
+---
+
+{
+	(proyectos.length > 0 || bio || retrato?.asset) && (
+		<section
+			class:list={[
+				'fade-in grid grid-cols-1 border-t border-[var(--color-line)]',
+				proyectos.length > 0 && (bio || retrato?.asset) && 'lg:grid-cols-2',
+			]}
+		>
+			{proyectos.length > 0 && (
+			<div
+				class:list={[
+					'px-6 py-16 lg:px-10 lg:py-24',
+					(bio || retrato?.asset) && 'lg:border-r lg:border-[var(--color-line)]',
+				]}
+			>
+				<div class="flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
+					<h2 class="text-lg font-light uppercase tracking-[0.22em]">Audiovisual</h2>
+					<a class="link-arrow shrink-0 text-xs uppercase tracking-[0.18em]" href="/audiovisual">
+						Ver todo el audiovisual <span class="arrow" aria-hidden="true">→</span>
+					</a>
+				</div>
+				<ul class="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2">
+					{proyectos.map((proyecto) => (
+						<li>
+							<a class="group block" href="/audiovisual">
+								<div class="relative aspect-video overflow-hidden bg-[var(--color-surface)]">
+									{proyecto.miniatura?.asset ? (
+										<Imagen
+											source={proyecto.miniatura}
+											alt={proyecto.miniatura?.alt || proyecto.titulo}
+											width={960}
+											height={540}
+											sizes="(min-width: 1024px) 24vw, 100vw"
+											class="absolute inset-0"
+										/>
+									) : (
+										proyecto.miniaturaUrl && (
+											<img
+												src={proyecto.miniaturaUrl}
+												alt={proyecto.titulo || 'Video'}
+												width="960"
+												height="540"
+												loading="lazy"
+												decoding="async"
+												class="absolute inset-0 h-full w-full object-cover"
+											/>
+										)
+									)}
+									<span class="pointer-events-none absolute inset-0 grid place-items-center text-white">
+										<svg class="h-11 w-11 fill-none stroke-current stroke-[1.5]" viewBox="0 0 48 48" aria-hidden="true">
+											<circle cx="24" cy="24" r="18" />
+											<path d="M21 17.5 32 24 21 30.5Z" />
+										</svg>
+									</span>
+								</div>
+								<p class="mt-3 text-base font-light">{proyecto.titulo}</p>
+								<p class="label mt-1">{ficha(proyecto)}</p>
+							</a>
+						</li>
+					))}
+				</ul>
+			</div>
+			)}
+
+			{(bio || retrato?.asset) && (
+			<div
+				class:list={[
+					'px-6 py-16 lg:px-10 lg:py-24',
+					proyectos.length > 0 && 'border-t border-[var(--color-line)] lg:border-t-0',
+				]}
+			>
+				<h2 class="text-lg font-light uppercase tracking-[0.22em]">Sobre la artista</h2>
+				<div class="mt-10 grid grid-cols-1 items-start gap-8 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+					<div class="relative aspect-[3/4] overflow-hidden bg-[var(--color-surface)]">
+						<Imagen
+							source={retrato}
+							alt={retrato?.alt || artista?.nombre || 'Retrato'}
+							width={720}
+							height={960}
+							sizes="(min-width: 640px) 28vw, 80vw"
+							class="absolute inset-0 grayscale"
+						/>
+					</div>
+					<div>
+						{bio && <p class="max-w-md text-sm leading-relaxed">{bio}</p>}
+						<a
+							class="link-arrow mt-6 text-xs uppercase tracking-[0.18em] underline decoration-1 underline-offset-[0.35em]"
+							href="/sobre-mi"
+						>
+							Conocer más <span class="arrow" aria-hidden="true">→</span>
+						</a>
+					</div>
+				</div>
+			</div>
+			)}
+		</section>
+	)
+}

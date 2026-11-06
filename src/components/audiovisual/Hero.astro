@@ -1,0 +1,31 @@
+---
+import Imagen from '../home/Imagen.astro'
+
+const { bajada = '', imagen } = Astro.props
+const tieneImagen = Boolean(imagen?.asset)
+---
+
+<section class:list={['av-hero grid grid-cols-1', tieneImagen && 'lg:grid-cols-[2fr_3fr]']}>
+	<div class="order-2 flex flex-col justify-end bg-[var(--color-dark)] px-6 py-12 text-white lg:order-1 lg:px-12 lg:py-14">
+		<h1 class="av-hero__titulo">Audiovisual</h1>
+		{bajada && <p class="mt-6 max-w-md text-base leading-relaxed text-white/80">{bajada}</p>}
+		<a class="btn btn-outline btn-on-dark mt-8 w-fit" href="#proyectos">
+			Ver proyectos <span class="arrow" aria-hidden="true">→</span>
+		</a>
+	</div>
+	{
+		tieneImagen && (
+			<div class="relative order-1 min-h-[52vw] lg:order-2 lg:min-h-0">
+				<Imagen
+					source={imagen}
+					alt={imagen?.alt || 'Audiovisual'}
+					width={1600}
+					height={900}
+					sizes="(min-width: 64rem) 60vw, 100vw"
+					priority={true}
+					class="absolute inset-0"
+				/>
+			</div>
+		)
+	}
+</section>

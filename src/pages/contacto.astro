@@ -1,0 +1,39 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Contacto from '../components/contacto/Contacto.astro'
+import { fetchContacto } from '../lib/sanity.js'
+
+const TEXTO = 'Estoy abierta a colaboraciones, proyectos curatoriales, exposiciones y adquisiciones de obra.'
+
+const { artista, contacto } = await fetchContacto()
+const titulo = artista.nombre ? `Contacto — ${artista.nombre}` : 'Contacto'
+const clave = import.meta.env.PUBLIC_WEB3FORMS_KEY || ''
+---
+
+<Layout
+	title={titulo}
+	description={TEXTO}
+	ogImage={contacto.foto?.src}
+	ogImageAlt={contacto.foto?.alt || 'Taller'}
+	nombre={artista.nombre}
+	subtitulo={artista.subtitulo}
+	email={contacto.email}
+	ciudad={contacto.ciudad}
+	instagram={contacto.instagram}
+	vimeo={contacto.vimeo}
+	youtube={contacto.youtube}
+>
+	<header class="contacto-encabezado">
+		<h1 class="page-title">Contacto</h1>
+	</header>
+	<Contacto
+		foto={contacto.foto}
+		email={contacto.email}
+		instagram={contacto.instagram}
+		vimeo={contacto.vimeo}
+		ciudad={contacto.ciudad}
+		whatsapp={contacto.whatsapp}
+		clave={clave}
+		prioridadFoto={true}
+	/>
+</Layout>

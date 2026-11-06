@@ -1,0 +1,131 @@
+---
+import Imagen from './Imagen.astro'
+
+const { destacadas = [], obra, whatsapp } = Astro.props
+
+const estados = {
+	disponible: { marca: '●', texto: 'Disponible' },
+	reservada: { marca: '○', texto: 'Reservada' },
+	vendida: { marca: '', texto: 'Vendida' },
+}
+
+const estado = estados[obra?.estado] || null
+
+function consultaWhatsapp(numero, titulo, anio) {
+	const digitos = String(numero || '').replace(/\D/g, '')
+	if (!digitos || !titulo) return ''
+	const detalle = anio ? ` (${anio})` : ''
+	const texto = `Hola, me interesa la obra '${titulo}'${detalle}. ¿Me pasás más info?`
+	return `https://wa.me/${digitos}?text=${encodeURIComponent(texto)}`
+}
+
+const linkConsulta = obra ? consultaWhatsapp(whatsapp, obra.titulo, obra.anio) : ''
+const meta = [obra?.anio, obra?.tecnica, obra?.dimensiones].filter(Boolean).join(' · ')
+---
+
+{
+	(destacadas.length > 0 || obra) && (
+		<section
+			class:list={[
+				'fade-in grid grid-cols-1',
+				destacadas.length > 0 && obra && 'lg:grid-cols-[3fr_2fr]',
+			]}
+		>
+			{destacadas.length > 0 && (
+			<div
+				class:list={[
+					'px-6 py-16 lg:px-10 lg:py-24',
+					obra && 'lg:border-r lg:border-[var(--color-line)]',
+				]}
+			>
+				<div class="flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
+					<h2 class="text-lg font-light uppercase tracking-[0.22em]">Obras destacadas</h2>
+					<a
+						class="link-arrow shrink-0 text-xs uppercase tracking-[0.18em]"
+						href="/obras"
+					>
+						Ver todas las obras <span class="arrow" aria-hidden="true">→</span>
+					</a>
+				</div>
+				<ul class="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
+					{destacadas.map((item) => (
+						<li>
+							<a class="group block" href={`/obras/${item.slug}`}>
+								<div class="relative aspect-square overflow-hidden bg-[var(--color-surface)]">
+									<Imagen
+										source={item.imagenPrincipal}
+										alt={item.imagenPrincipal?.alt || item.titulo}
+										width={640}
+										height={640}
+										sizes="(min-width: 1024px) 14vw, 45vw"
+										class="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+									/>
+								</div>
+								<span class="sr-only">{item.titulo}</span>
+							</a>
+						</li>
+					))}
+				</ul>
+			</div>
+			)}
+
+			{obra && (
+				<div
+					class:list={[
+						'px-6 py-16 lg:px-10 lg:py-24',
+						destacadas.length > 0 && 'border-t border-[var(--color-line)] lg:border-t-0',
+					]}
+				>
+					<div class="grid grid-cols-1 items-start gap-6 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+						<a
+							class="relative block aspect-[4/5] overflow-hidden bg-[var(--color-surface)]"
+							href={obra.slug ? `/obras/${obra.slug}` : '/obras'}
+						>
+							<Imagen
+								source={obra.imagenPrincipal}
+								alt={obra.imagenPrincipal?.alt || obra.titulo}
+								width={800}
+								height={1000}
+								sizes="(min-width: 1024px) 16vw, 80vw"
+								class="absolute inset-0"
+							/>
+						</a>
+						<div>
+							<p class="label">Obra destacada</p>
+							{destacadas.length > 0 ? (
+								<h3 class="mt-3 text-2xl font-light leading-tight">{obra.titulo}</h3>
+							) : (
+								<h2 class="mt-3 text-2xl font-light leading-tight">{obra.titulo}</h2>
+							)}
+							{meta && <p class="mt-3 text-sm text-[var(--color-muted)]">{meta}</p>}
+							{obra.descripcionCorta && (
+								<p class="mt-4 max-w-sm text-sm leading-relaxed">{obra.descripcionCorta}</p>
+							)}
+							{estado && (
+								<p
+									class:list={[
+										'mt-6 inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em]',
+										obra.estado === 'vendida' ? 'text-[var(--color-muted)]' : 'text-[var(--color-ink)]',
+									]}
+								>
+									{estado.marca && <span aria-hidden="true">{estado.marca}</span>}
+									{estado.texto}
+								</p>
+							)}
+							{linkConsulta && (
+								<a
+									class="btn btn-solid mt-6"
+									href={linkConsulta}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									Consultar por esta obra <span class="arrow" aria-hidden="true">→</span>
+								</a>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
+		</section>
+	)
+}

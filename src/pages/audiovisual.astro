@@ -1,0 +1,29 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Hero from '../components/audiovisual/Hero.astro'
+import Listado from '../components/audiovisual/Listado.jsx'
+import { fetchAudiovisual, urlFor } from '../lib/sanity.js'
+
+const { artista, configuracion, bajada, imagen, proyectos } = await fetchAudiovisual()
+const titulo = artista?.nombre ? `Audiovisual — ${artista.nombre}` : 'Audiovisual'
+const ogImage = imagen?.asset ? urlFor(imagen).width(1200).height(630).url() : undefined
+---
+
+<Layout
+	title={titulo}
+	description={bajada || 'Proyectos de video.'}
+	ogImage={ogImage}
+	ogImageAlt={imagen?.alt || 'Audiovisual'}
+	nombre={artista?.nombre}
+	subtitulo={artista?.subtitulo}
+	email={configuracion?.email}
+	ciudad={configuracion?.ciudad}
+	instagram={configuracion?.instagram}
+	vimeo={configuracion?.vimeo}
+	youtube={configuracion?.youtube}
+>
+	<Hero bajada={bajada} imagen={imagen} />
+	<section id="proyectos" class="fade-in av-seccion">
+		<Listado client:visible proyectos={proyectos} />
+	</section>
+</Layout>

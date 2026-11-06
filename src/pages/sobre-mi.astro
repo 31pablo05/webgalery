@@ -1,0 +1,46 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Bio from '../components/sobre/Bio.astro'
+import Contacto from '../components/contacto/Contacto.astro'
+import { fetchSobreMi } from '../lib/sanity.js'
+import { htmlDePortable, textoDePortable } from '../lib/texto.js'
+
+const { artista, contacto } = await fetchSobreMi()
+const bioHtml = htmlDePortable(artista.bioCompleta)
+const descripcion = artista.bioCorta || textoDePortable(artista.bioCompleta).slice(0, 200) || 'Biografía y trayectoria.'
+const titulo = artista.nombre ? `Sobre mí — ${artista.nombre}` : 'Sobre mí'
+const clave = import.meta.env.PUBLIC_WEB3FORMS_KEY || ''
+---
+
+<Layout
+	title={titulo}
+	description={descripcion}
+	ogImage={artista.retrato?.src}
+	ogImageAlt={artista.retrato?.alt || 'Retrato'}
+	nombre={artista.nombre}
+	subtitulo={artista.subtitulo}
+	email={contacto.email}
+	ciudad={contacto.ciudad}
+	instagram={contacto.instagram}
+	vimeo={contacto.vimeo}
+	youtube={contacto.youtube}
+>
+	<Bio
+		retrato={artista.retrato}
+		bioHtml={bioHtml}
+		cvUrl={artista.cvUrl}
+		trayectoria={artista.trayectoria}
+		exposiciones={artista.exposiciones}
+		residencias={artista.residencias}
+		publicaciones={artista.publicaciones}
+	/>
+	<Contacto
+		foto={contacto.foto}
+		email={contacto.email}
+		instagram={contacto.instagram}
+		vimeo={contacto.vimeo}
+		ciudad={contacto.ciudad}
+		whatsapp={contacto.whatsapp}
+		clave={clave}
+	/>
+</Layout>

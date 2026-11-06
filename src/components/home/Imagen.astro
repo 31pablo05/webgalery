@@ -1,0 +1,38 @@
+---
+import {urlFor} from '../../lib/sanity.js'
+
+const {
+	source,
+	width,
+	height,
+	sizes,
+	priority = false,
+	class: clase = '',
+} = Astro.props
+
+const alt = Astro.props.alt || source?.alt || ''
+const tieneArchivo = Boolean(source?.asset)
+const src = tieneArchivo ? urlFor(source).width(width).height(height).url() : ''
+const chico = Math.round(width / 2)
+const altoChico = Math.round((height * chico) / width)
+const srcset = tieneArchivo
+	? `${urlFor(source).width(chico).height(altoChico).url()} ${chico}w, ${src} ${width}w`
+	: ''
+---
+
+{
+	tieneArchivo && (
+		<img
+			src={src}
+			srcset={srcset}
+			sizes={sizes}
+			alt={alt}
+			width={width}
+			height={height}
+			class:list={['block h-full w-full object-cover', clase]}
+			loading={priority ? 'eager' : 'lazy'}
+			fetchpriority={priority ? 'high' : 'auto'}
+			decoding="async"
+		/>
+	)
+}

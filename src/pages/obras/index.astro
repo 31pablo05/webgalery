@@ -1,0 +1,31 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import Encabezado from '../../components/obras/Encabezado.astro'
+import Galeria from '../../components/obras/Galeria.jsx'
+import { fetchGaleria } from '../../lib/sanity.js'
+
+const BAJADA = 'Una exploración del paisaje, la materia y el tiempo a través de la pintura.'
+
+const { artista, configuracion, bajada, obras } = await fetchGaleria()
+const bajadaVisible = bajada || BAJADA
+const titulo = artista?.nombre ? `Obras — ${artista.nombre}` : 'Obras'
+---
+
+<Layout
+	title={titulo}
+	description={bajadaVisible}
+	ogImage={obras[0]?.imagen?.src}
+	ogImageAlt={obras[0]?.imagen?.alt || obras[0]?.titulo || 'Obras'}
+	nombre={artista?.nombre}
+	subtitulo={artista?.subtitulo}
+	email={configuracion?.email}
+	ciudad={configuracion?.ciudad}
+	instagram={configuracion?.instagram}
+	vimeo={configuracion?.vimeo}
+	youtube={configuracion?.youtube}
+>
+	<Encabezado bajada={bajadaVisible} />
+	<section class="fade-in px-6 pt-10 pb-20 lg:px-10 lg:pt-14 lg:pb-28">
+		<Galeria client:visible obras={obras} />
+	</section>
+</Layout>

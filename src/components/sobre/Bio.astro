@@ -1,0 +1,98 @@
+---
+const {
+	retrato = null,
+	bioHtml = '',
+	cvUrl = '',
+	trayectoria = [],
+	exposiciones = [],
+	residencias = [],
+	publicaciones = [],
+} = Astro.props
+
+const grupos = [
+	{ id: 'trayectoria', etiqueta: 'Trayectoria', items: trayectoria },
+	{ id: 'exposiciones', etiqueta: 'Exposiciones', items: exposiciones },
+	{ id: 'residencias', etiqueta: 'Residencias', items: residencias },
+	{ id: 'publicaciones', etiqueta: 'Publicaciones', items: publicaciones },
+].filter((grupo) => grupo.items.length > 0)
+---
+
+<section class:list={['sobre', grupos.length > 0 && 'sobre--con-cv']}>
+	<div class="sobre__bio">
+		<h1 class="page-title sobre__titulo">Sobre la artista</h1>
+		<div class:list={['sobre__cuerpo', retrato && 'sobre__cuerpo--con-foto']}>
+			{
+				retrato && (
+					<div class="sobre__retrato">
+						<img
+							src={retrato.src}
+							srcset={retrato.srcset}
+							sizes="(min-width: 64rem) 22vw, 80vw"
+							alt={retrato.alt || 'Retrato'}
+							width={retrato.ancho}
+							height={retrato.alto}
+							loading="eager"
+							fetchpriority="high"
+							decoding="async"
+						/>
+					</div>
+				)
+			}
+			<div>
+				{bioHtml && <div class="sobre__texto" set:html={bioHtml} />}
+				{
+					cvUrl && (
+						<a class="btn btn-outline sobre__cv-btn" href={cvUrl} target="_blank" rel="noopener noreferrer">
+							Ver CV completo <span class="arrow" aria-hidden="true">→</span>
+						</a>
+					)
+				}
+			</div>
+		</div>
+	</div>
+
+	{
+		grupos.length > 0 && (
+			<aside class="sobre__resumen">
+				<h2 class="sobre__resumen-titulo">CV (resumen)</h2>
+				<ul class="cv-lista">
+					{grupos.map((grupo) => (
+						<li class:list={['cv-item', grupo.id === 'publicaciones' && 'cv-item--publicaciones']}>
+							{grupo.id === 'trayectoria' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<circle cx="12" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.25" />
+									<path d="M5.5 19.5c1.1-3.2 3.2-4.8 6.5-4.8s5.4 1.6 6.5 4.8" fill="none" stroke="currentColor" stroke-width="1.25" />
+								</svg>
+							)}
+							{grupo.id === 'exposiciones' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<rect x="4" y="5" width="16" height="14" fill="none" stroke="currentColor" stroke-width="1.25" />
+								</svg>
+							)}
+							{grupo.id === 'residencias' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<rect x="7" y="7" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.25" />
+									<rect x="4" y="4" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.25" />
+								</svg>
+							)}
+							{grupo.id === 'publicaciones' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<path d="M5 5.5h6.2A2.3 2.3 0 0 1 13.5 7.8V19a2.2 2.2 0 0 0-2.2-1.6H5z" fill="none" stroke="currentColor" stroke-width="1.25" />
+									<path d="M19 5.5h-6.2A2.3 2.3 0 0 0 10.5 7.8V19a2.2 2.2 0 0 1 2.2-1.6H19z" fill="none" stroke="currentColor" stroke-width="1.25" />
+								</svg>
+							)}
+							<div>
+								<h3 class="label">{grupo.etiqueta}</h3>
+								<ul>
+									{grupo.items.map((item) => (
+										<li>{item}</li>
+									))}
+								</ul>
+							</div>
+						</li>
+					))}
+				</ul>
+			</aside>
+		)
+	}
+</section>

@@ -1,0 +1,44 @@
+---
+import Imagen from './Imagen.astro'
+
+const { hero } = Astro.props
+const lineas = [hero?.linea1, hero?.linea2, hero?.linea3]
+	.map((linea) => (linea || '').trim())
+	.filter(Boolean)
+	.map((linea) => (linea.endsWith('/') ? linea : `${linea} /`))
+const tieneImagen = Boolean(hero?.imagen?.asset)
+const tieneTexto = lineas.length > 0 || Boolean(hero?.bajada)
+---
+
+{
+	(tieneTexto || tieneImagen) && (
+		<section class="grid grid-cols-1 lg:h-[70vh] lg:grid-cols-[2fr_3fr]">
+			<div class="order-2 flex flex-col justify-end bg-[var(--color-dark)] px-6 py-14 text-white lg:order-1 lg:px-12 lg:py-16">
+				{lineas.length > 0 && (
+					<h1 class="text-[clamp(2.4rem,4.4vw,4.6rem)] font-light uppercase leading-[0.95] tracking-[0.12em] text-white">
+						{lineas.map((linea) => (
+							<span class="block">{linea}</span>
+						))}
+					</h1>
+				)}
+				{hero?.bajada && (
+					<p class="mt-6 max-w-md text-base leading-relaxed text-white/80">{hero.bajada}</p>
+				)}
+				<a class="btn btn-outline btn-on-dark mt-8 w-fit" href="/obras">
+					Ver obras <span class="arrow" aria-hidden="true">→</span>
+				</a>
+			</div>
+			<div class="relative order-1 min-h-[58vw] lg:order-2 lg:min-h-0">
+				<Imagen
+					source={hero?.imagen}
+					alt={hero?.imagen?.alt || lineas[0]?.replace(/\s*\/\s*$/, '') || 'Inicio'}
+					width={1600}
+					height={1100}
+					sizes="(min-width: 1024px) 60vw, 100vw"
+					priority={true}
+					class="absolute inset-0"
+				/>
+			</div>
+		</section>
+	)
+}

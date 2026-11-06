@@ -1,0 +1,19 @@
+{
+  "name": "webgalery-studio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy"
+  },
+  "dependencies": {
+    "@sanity/locale-es-es": "^1.2.39",
+    "react": "^19.2.2",
+    "react-dom": "^19.2.2",
+    "sanity": "^6.22.0",
+    "styled-components": "^6.1.15",
+    "@sanity/icons": "^5.2.3"
+  }
+}

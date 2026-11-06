@@ -1,0 +1,8 @@
+---
+const { bajada } = Astro.props
+---
+
+<header class="fade-in px-6 pt-16 lg:px-10 lg:pt-24">
+	<h1 class="page-title">Obras / Galería</h1>
+	{bajada && <p class="mt-6 max-w-3xl text-base leading-relaxed md:text-lg">{bajada}</p>}
+</header>

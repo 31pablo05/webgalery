@@ -1,0 +1,46 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import Visor from '../../components/obras/Visor.jsx'
+import FichaObra from '../../components/obras/FichaObra.astro'
+import MasObras from '../../components/obras/MasObras.astro'
+import { fetchPaginasObra } from '../../lib/sanity.js'
+
+export async function getStaticPaths() {
+	return fetchPaginasObra()
+}
+
+const TEXTO_ENVIO = 'Envío nacional e internacional. También disponible para colección privada.'
+
+const { obra, artista, configuracion, relacionadas } = Astro.props
+const envio = configuracion?.envioColeccion || TEXTO_ENVIO
+const titulo = artista?.nombre ? `${obra.titulo} — ${artista.nombre}` : obra.titulo
+const descripcion = obra.descripcionCorta || (artista?.nombre ? `${obra.titulo}, obra de ${artista.nombre}.` : obra.titulo)
+---
+
+<Layout
+	title={titulo}
+	description={descripcion}
+	ogImage={obra.imagenes?.[0]?.src}
+	ogImageAlt={obra.imagenes?.[0]?.alt || obra.titulo}
+	nombre={artista?.nombre}
+	subtitulo={artista?.subtitulo}
+	email={configuracion?.email}
+	ciudad={configuracion?.ciudad}
+	instagram={configuracion?.instagram}
+	vimeo={configuracion?.vimeo}
+	youtube={configuracion?.youtube}
+>
+	<div class="detalle-volver">
+		<a class="detalle-volver__link" href="/obras">
+			<span class="detalle-volver__flecha" aria-hidden="true">←</span>
+			Volver a obras
+		</a>
+	</div>
+	<article class="detalle">
+		<div class="detalle__visor">
+			<Visor client:load imagenes={obra.imagenes} titulo={obra.titulo} />
+		</div>
+		<FichaObra obra={obra} whatsapp={configuracion?.whatsapp} envio={envio} />
+	</article>
+	<MasObras obras={relacionadas} />
+</Layout>

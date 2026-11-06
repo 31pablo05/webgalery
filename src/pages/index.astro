@@ -1,0 +1,38 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Hero from '../components/home/Hero.astro'
+import ObrasDestacadas from '../components/home/ObrasDestacadas.astro'
+import Presentacion from '../components/home/Presentacion.astro'
+import { fetchInicio, urlFor } from '../lib/sanity.js'
+
+const { artista, configuracion, destacadas, audiovisual } = await fetchInicio()
+const hero = artista?.heroInicio
+const nombre = artista?.nombre || ''
+const titulo = nombre ? `Inicio — ${nombre}` : 'Inicio'
+const imagenOg = hero?.imagen?.asset ? hero.imagen : artista?.retrato?.asset ? artista.retrato : null
+const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : undefined
+const tieneTituloHero = [hero?.linea1, hero?.linea2, hero?.linea3].some((linea) => (linea || '').trim())
+---
+
+<Layout
+	title={titulo}
+	description={hero?.bajada || artista?.bioCorta || 'Pintura y proyectos audiovisuales.'}
+	ogImage={ogImage}
+	ogImageAlt={imagenOg?.alt || nombre || 'Inicio'}
+	nombre={artista?.nombre}
+	subtitulo={artista?.subtitulo}
+	email={configuracion?.email}
+	ciudad={configuracion?.ciudad}
+	instagram={configuracion?.instagram}
+	vimeo={configuracion?.vimeo}
+	youtube={configuracion?.youtube}
+>
+	{!tieneTituloHero && <h1 class="sr-only">{nombre || 'Inicio'}</h1>}
+	<Hero hero={hero} />
+	<ObrasDestacadas
+		destacadas={destacadas}
+		obra={configuracion?.obraPrincipal}
+		whatsapp={configuracion?.whatsapp}
+	/>
+	<Presentacion proyectos={audiovisual} artista={artista} />
+</Layout>

@@ -1,0 +1,143 @@
+---
+import Formulario from './Formulario.jsx'
+
+const {
+	foto = null,
+	email = '',
+	instagram = '',
+	vimeo = '',
+	ciudad = '',
+	whatsapp = '',
+	clave = '',
+	prioridadFoto = false,
+} = Astro.props
+
+function textoInstagram(url) {
+	try {
+		const partes = new URL(url).pathname.split('/').filter(Boolean)
+		return partes[0] ? `@${partes[0]}` : url
+	} catch {
+		return url
+	}
+}
+
+function textoSitio(url) {
+	try {
+		const destino = new URL(url)
+		const camino = destino.pathname.replace(/\/$/, '')
+		return `${destino.hostname.replace(/^www\./, '')}${camino}`
+	} catch {
+		return url
+	}
+}
+
+function linkWhatsapp(numero) {
+	const digitos = String(numero || '').replace(/\D/g, '')
+	return digitos ? `https://wa.me/${digitos}` : ''
+}
+
+const filas = [
+	email && { id: 'email', etiqueta: 'Email', valor: email, href: `mailto:${email}` },
+	instagram && {
+		id: 'instagram',
+		etiqueta: 'Instagram',
+		valor: textoInstagram(instagram),
+		href: instagram,
+		externo: true,
+	},
+	vimeo && { id: 'vimeo', etiqueta: 'Vimeo', valor: textoSitio(vimeo), href: vimeo, externo: true },
+	ciudad && { id: 'ciudad', etiqueta: 'Ciudad', valor: ciudad },
+	whatsapp && linkWhatsapp(whatsapp) && {
+		id: 'whatsapp',
+		etiqueta: 'WhatsApp',
+		valor: whatsapp,
+		href: linkWhatsapp(whatsapp),
+		externo: true,
+	},
+].filter(Boolean)
+---
+
+<section class:list={['contacto', foto && 'contacto--con-foto']}>
+	{
+		foto && (
+			<div class="contacto__foto">
+				<div class="contacto__marco">
+					<img
+						src={foto.src}
+						srcset={foto.srcset}
+						sizes="(min-width: 64rem) 32vw, 100vw"
+						alt={foto.alt || 'Taller'}
+						width={foto.ancho}
+						height={foto.alto}
+						loading={prioridadFoto ? 'eager' : 'lazy'}
+						fetchpriority={prioridadFoto ? 'high' : 'auto'}
+						decoding="async"
+					/>
+				</div>
+			</div>
+		)
+	}
+
+	<div class="contacto__datos">
+		<h2 class="contacto__titulo">Contacto</h2>
+		<p class="contacto__texto">
+			Estoy abierta a colaboraciones, proyectos curatoriales, exposiciones y adquisiciones de obra.
+		</p>
+		{
+			filas.length > 0 && (
+				<dl class="contacto-lista">
+					{filas.map((fila) => (
+						<div class="contacto-dato">
+							{fila.id === 'email' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<rect x="3.5" y="6" width="17" height="12" fill="none" stroke="currentColor" stroke-width="1.25" />
+									<path d="M4 7.2 12 13l8-5.8" fill="none" stroke="currentColor" stroke-width="1.25" />
+								</svg>
+							)}
+							{fila.id === 'instagram' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" />
+									<circle cx="12" cy="12" r="3.4" fill="none" stroke="currentColor" stroke-width="1.25" />
+									<circle cx="16.8" cy="7.2" r="0.7" fill="currentColor" />
+								</svg>
+							)}
+							{fila.id === 'vimeo' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.25" />
+									<path d="M10.4 9.4 15.4 12l-5 2.6Z" fill="none" stroke="currentColor" stroke-width="1.25" />
+								</svg>
+							)}
+							{fila.id === 'ciudad' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<path d="M12 21s6-5.1 6-10a6 6 0 1 0-12 0c0 4.9 6 10 6 10z" fill="none" stroke="currentColor" stroke-width="1.25" />
+									<circle cx="12" cy="11" r="1.8" fill="none" stroke="currentColor" stroke-width="1.25" />
+								</svg>
+							)}
+							{fila.id === 'whatsapp' && (
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<path d="M6.2 17.2 5 20l2.6-1.1A8 8 0 1 0 6.2 17.2z" fill="none" stroke="currentColor" stroke-width="1.25" />
+								</svg>
+							)}
+							<div>
+								<dt class="label">{fila.etiqueta}</dt>
+								<dd>
+									{fila.href ? (
+										<a href={fila.href} target={fila.externo ? '_blank' : undefined} rel={fila.externo ? 'noopener noreferrer' : undefined}>
+											{fila.valor}
+										</a>
+									) : (
+										fila.valor
+									)}
+								</dd>
+							</div>
+						</div>
+					))}
+				</dl>
+			)
+		}
+	</div>
+
+	<div class="contacto__form">
+		<Formulario client:visible clave={clave} whatsapp={whatsapp} />
+	</div>
+</section>

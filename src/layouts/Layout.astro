@@ -1,0 +1,87 @@
+---
+import '../styles/global.css';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+
+const {
+  title = '',
+  description = '',
+  ogImage,
+  nombre,
+  subtitulo,
+  email,
+  ciudad,
+  instagram,
+  vimeo,
+  youtube,
+  ogImageAlt = '',
+} = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
+const texto = String(description || '').replace(/\s+/g, ' ').trim();
+const meta = texto.length > 160 ? `${texto.slice(0, 157).replace(/\s+\S*$/, '').trim()}…` : texto;
+const imagenOg = ogImage ? new URL(ogImage, Astro.site ?? Astro.url).href : '';
+---
+
+<html lang="es" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={meta} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={meta} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="es_AR" />
+    {imagenOg && <meta property="og:image" content={imagenOg} />}
+    {imagenOg && ogImageAlt && <meta property="og:image:alt" content={ogImageAlt} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Jost:wght@300;400&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      document.documentElement.classList.remove('no-js');
+    </script>
+  </head>
+  <body>
+    <Header nombre={nombre} subtitulo={subtitulo} />
+    <main>
+      <slot />
+    </main>
+    <Footer
+      nombre={nombre}
+      subtitulo={subtitulo}
+      email={email}
+      ciudad={ciudad}
+      instagram={instagram}
+      vimeo={vimeo}
+      youtube={youtube}
+    />
+    <script>
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const nodes = document.querySelectorAll('.fade-in');
+
+      if (reduceMotion) {
+        nodes.forEach((node) => node.classList.add('is-visible'));
+      } else if (nodes.length) {
+        const observer = new IntersectionObserver(
+          (entries, obs) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            obs.unobserve(entry.target);
+            });
+          },
+          { threshold: 0.15 },
+        );
+
+        nodes.forEach((node) => observer.observe(node));
+      }
+    </script>
+  </body>
+</html>
