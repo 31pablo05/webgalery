@@ -1,5 +1,6 @@
 ---
 import Imagen from './Imagen.astro'
+import { medidasImagen } from '../../lib/sanity.js'
 
 const { destacadas = [], obra, whatsapp } = Astro.props
 
@@ -9,8 +10,6 @@ const estados = {
 	vendida: { marca: '', texto: 'Vendida' },
 }
 
-const estado = estados[obra?.estado] || null
-
 function consultaWhatsapp(numero, titulo, anio) {
 	const digitos = String(numero || '').replace(/\D/g, '')
 	if (!digitos || !titulo) return ''
@@ -19,113 +18,334 @@ function consultaWhatsapp(numero, titulo, anio) {
 	return `https://wa.me/${digitos}?text=${encodeURIComponent(texto)}`
 }
 
-const linkConsulta = obra ? consultaWhatsapp(whatsapp, obra.titulo, obra.anio) : ''
-const meta = [obra?.anio, obra?.tecnica, obra?.dimensiones].filter(Boolean).join(' · ')
+// La obra principal (Configuración) abre la selección; si no hay, la primera destacada.
+const principal = obra?.imagenPrincipal?.asset ? obra : null
+const piezas = [principal, ...destacadas.filter((item) => item.slug !== principal?.slug)]
+	.filter((item) => item?.imagenPrincipal?.asset)
+	.slice(0, 5)
+	.map((item) => {
+		const { ancho, alto } = medidasImagen(item.imagenPrincipal)
+		return { ...item, ancho, alto, horizontal: ancho > alto * 1.15 }
+	})
+
+// Móvil: las horizontales ocupan todo el ancho; las demás se agrupan de a dos, escalonadas.
+let pendiente = null
+for (const [indice, pieza] of piezas.entries()) {
+	if (indice === 0 || pieza.horizontal) {
+		pieza.movil = 'completa'
+		continue
+	}
+	if (pendiente) {
+		pendiente.movil = 'par-a'
+		pieza.movil = 'par-b'
+		pendiente = null
+	} else {
+		pendiente = pieza
+	}
+}
+if (pendiente) pendiente.movil = 'sola'
+
+// Escritorio: dos columnas desfasadas. Izquierda: 1.ª y 4.ª obra; derecha: el resto.
+const izquierda = piezas.filter((_, indice) => indice === 0 || indice === 3)
+const derecha = piezas.filter((_, indice) => indice !== 0 && indice !== 3)
+
+const estado = principal ? estados[principal.estado] || null : null
+const meta = principal ? [principal.anio, principal.tecnica, principal.dimensiones].filter(Boolean).join(' · ') : ''
+const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, principal.anio) : ''
 ---
 
 {
-	(destacadas.length > 0 || obra) && (
-		<section
-			class:list={[
-				'fade-in grid grid-cols-1',
-				destacadas.length > 0 && obra && 'lg:grid-cols-[3fr_2fr]',
-			]}
-		>
-			{destacadas.length > 0 && (
-			<div
-				class:list={[
-					'px-6 py-16 lg:px-10 lg:py-24',
-					obra && 'lg:border-r lg:border-[var(--color-line)]',
-				]}
-			>
-				<div class="flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
-					<h2 class="text-lg font-light uppercase tracking-[0.22em]">Obras destacadas</h2>
-					<a
-						class="link-arrow shrink-0 text-xs uppercase tracking-[0.18em]"
-						href="/obras"
-					>
-						Ver todas las obras <span class="arrow" aria-hidden="true">→</span>
-					</a>
-				</div>
-				<ul class="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
-					{destacadas.map((item) => (
-						<li>
-							<a class="group block" href={`/obras/${item.slug}`}>
-								<div class="relative aspect-square overflow-hidden bg-[var(--color-surface)]">
-									<Imagen
-										source={item.imagenPrincipal}
-										alt={item.imagenPrincipal?.alt || item.titulo}
-										width={640}
-										height={640}
-										sizes="(min-width: 1024px) 14vw, 45vw"
-										class="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-									/>
-								</div>
-								<span class="sr-only">{item.titulo}</span>
-							</a>
-						</li>
-					))}
-				</ul>
-			</div>
-			)}
+	piezas.length > 0 && (
+		<section class="seleccion" aria-labelledby="seleccion-titulo">
+			<header class="seleccion__cabecera fade-in">
+				<p class="label">Obras</p>
+				<h2 id="seleccion-titulo" class="titulo-seccion">
+					Selección de obra
+				</h2>
+				<a class="enlace seleccion__todas" href="/obras">
+					Ver todas las obras <span class="arrow" aria-hidden="true">→</span>
+				</a>
+			</header>
 
-			{obra && (
-				<div
-					class:list={[
-						'px-6 py-16 lg:px-10 lg:py-24',
-						destacadas.length > 0 && 'border-t border-[var(--color-line)] lg:border-t-0',
-					]}
-				>
-					<div class="grid grid-cols-1 items-start gap-6 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-						<a
-							class="relative block aspect-[4/5] overflow-hidden bg-[var(--color-surface)]"
-							href={obra.slug ? `/obras/${obra.slug}` : '/obras'}
-						>
-							<Imagen
-								source={obra.imagenPrincipal}
-								alt={obra.imagenPrincipal?.alt || obra.titulo}
-								width={800}
-								height={1000}
-								sizes="(min-width: 1024px) 16vw, 80vw"
-								class="absolute inset-0"
-							/>
-						</a>
-						<div>
-							<p class="label">Obra destacada</p>
-							{destacadas.length > 0 ? (
-								<h3 class="mt-3 text-2xl font-light leading-tight">{obra.titulo}</h3>
-							) : (
-								<h2 class="mt-3 text-2xl font-light leading-tight">{obra.titulo}</h2>
-							)}
-							{meta && <p class="mt-3 text-sm text-[var(--color-muted)]">{meta}</p>}
-							{obra.descripcionCorta && (
-								<p class="mt-4 max-w-sm text-sm leading-relaxed">{obra.descripcionCorta}</p>
-							)}
-							{estado && (
-								<p
-									class:list={[
-										'mt-6 inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em]',
-										obra.estado === 'vendida' ? 'text-[var(--color-muted)]' : 'text-[var(--color-ink)]',
-									]}
-								>
-									{estado.marca && <span aria-hidden="true">{estado.marca}</span>}
-									{estado.texto}
-								</p>
-							)}
-							{linkConsulta && (
-								<a
-									class="btn btn-solid mt-6"
-									href={linkConsulta}
-									target="_blank"
-									rel="noopener noreferrer"
-								>
-									Consultar por esta obra <span class="arrow" aria-hidden="true">→</span>
-								</a>
-							)}
+			<div class:list={['seleccion__grilla', piezas.length === 1 && 'seleccion__grilla--una']}>
+				{[izquierda, derecha].map((columna, numero) =>
+					columna.length > 0 && (
+						<div class:list={['seleccion__columna', numero === 0 ? 'seleccion__columna--a' : 'seleccion__columna--b']}>
+							{columna.map((pieza) => {
+								const orden = piezas.indexOf(pieza)
+								const esPrincipal = orden === 0
+								return (
+									<article
+										class:list={['pieza fade-in', `pieza--${pieza.movil}`, esPrincipal && 'pieza--principal']}
+										style={`--orden: ${orden}; --ancho-natural: ${pieza.ancho}px`}
+									>
+										<a class="pieza__enlace" href={pieza.slug ? `/obras/${pieza.slug}` : '/obras'}>
+											<div class="pieza__marco">
+												<Imagen
+													source={pieza.imagenPrincipal}
+													alt={pieza.imagenPrincipal?.alt || pieza.titulo}
+													width={esPrincipal ? 1200 : 900}
+													sizes={
+														esPrincipal
+															? '(min-width: 64rem) 52vw, 100vw'
+															: pieza.movil === 'completa'
+																? '(min-width: 64rem) 36vw, 100vw'
+																: '(min-width: 64rem) 30vw, 50vw'
+													}
+												/>
+											</div>
+											<h3 class="pieza__pie">
+												<span class="pieza__titulo titulo-obra">{pieza.titulo}</span>
+												{pieza.anio && <span class="pieza__anio">, {pieza.anio}</span>}
+											</h3>
+										</a>
+										{esPrincipal && (meta || estado || linkConsulta) && (
+											<div class="pieza__ficha">
+												{meta && <p class="pieza__meta">{meta}</p>}
+												{estado && (
+													<p class="pieza__estado">
+														{estado.marca && <span aria-hidden="true">{estado.marca}</span>}
+														{estado.texto}
+													</p>
+												)}
+												{linkConsulta && (
+													<a class="enlace" href={linkConsulta} target="_blank" rel="noopener noreferrer">
+														{estado ? 'Consultar por esta obra' : 'Consultar sobre esta obra'} <span class="arrow" aria-hidden="true">→</span>
+													</a>
+												)}
+											</div>
+										)}
+									</article>
+								)
+							})}
 						</div>
-					</div>
-				</div>
-			)}
+					),
+				)}
+			</div>
 		</section>
 	)
 }
+
+<style>
+	.seleccion {
+		padding: var(--seccion) var(--gutter) 0;
+	}
+
+	.seleccion__cabecera {
+		display: grid;
+		gap: 0.9rem;
+		justify-items: start;
+	}
+
+	.seleccion__todas {
+		margin-top: 0.5rem;
+	}
+
+	/* Móvil y tablet: las columnas desaparecen y las obras se ordenan en una grilla de dos. */
+	.seleccion__grilla {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 2.75rem 1rem;
+		align-items: start;
+		margin-top: 3rem;
+	}
+
+	.seleccion__columna {
+		display: contents;
+	}
+
+	.pieza {
+		order: var(--orden);
+		min-width: 0;
+	}
+
+	.pieza--completa {
+		grid-column: 1 / -1;
+	}
+
+	.pieza--par-b {
+		margin-top: 3.5rem;
+	}
+
+	.pieza--sola {
+		grid-column: 1 / -1;
+		width: 64%;
+		margin-left: auto;
+	}
+
+	.pieza__enlace {
+		display: block;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.pieza__marco {
+		max-width: var(--ancho-natural);
+		background-color: var(--color-surface);
+	}
+
+	.pieza__marco :global(img) {
+		transition: opacity 0.6s var(--ease);
+	}
+
+	.pieza__pie {
+		margin-top: 0.8rem;
+		font-family: var(--font-body);
+		font-size: 0.875rem;
+		font-weight: 400;
+		line-height: 1.4;
+		letter-spacing: 0;
+	}
+
+	.pieza__titulo {
+		background-image: linear-gradient(currentColor, currentColor);
+		background-position: 0 100%;
+		background-repeat: no-repeat;
+		background-size: 0 1px;
+		transition: background-size 0.5s var(--ease);
+	}
+
+	.pieza__titulo {
+		font-size: 1.1875rem;
+		line-height: 1.2;
+	}
+
+	.pieza__anio {
+		color: var(--color-muted);
+	}
+
+	.pieza--principal .pieza__titulo {
+		font-size: 1.375rem;
+	}
+
+	.pieza__ficha {
+		display: grid;
+		gap: 0.6rem;
+		justify-items: start;
+		margin-top: 0.6rem;
+	}
+
+	.pieza__meta {
+		color: var(--color-muted);
+		font-size: 0.875rem;
+	}
+
+	.pieza__estado {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.875rem;
+	}
+
+	.pieza__enlace:hover .pieza__titulo,
+	.pieza__enlace:focus-visible .pieza__titulo {
+		background-size: 100% 1px;
+	}
+
+	.pieza__enlace:focus-visible {
+		outline: 1px solid var(--color-ink);
+		outline-offset: 6px;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.pieza__enlace:hover .pieza__marco :global(img) {
+			opacity: 0.88;
+		}
+	}
+
+	@media (min-width: 48rem) {
+		.seleccion__grilla {
+			gap: 4rem 1.5rem;
+			margin-top: 4rem;
+		}
+
+		.pieza--principal {
+			width: 82%;
+		}
+
+		.pieza--par-b {
+			margin-top: 6rem;
+		}
+
+		.pieza--sola {
+			width: 48%;
+		}
+	}
+
+	/* Escritorio: columna ancha a la izquierda, columna angosta y desfasada a la derecha. */
+	@media (min-width: 64rem) {
+		.seleccion__cabecera {
+			grid-template-columns: repeat(12, minmax(0, 1fr));
+			column-gap: 1.5rem;
+			align-items: end;
+		}
+
+		.seleccion__cabecera .label {
+			grid-column: 1 / 4;
+			padding-bottom: 0.6rem;
+		}
+
+		.seleccion__cabecera .titulo-seccion {
+			grid-column: 4 / 10;
+		}
+
+		.seleccion__todas {
+			grid-column: 10 / -1;
+			justify-self: end;
+			margin: 0 0 0.5rem;
+		}
+
+		.seleccion__grilla {
+			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+			column-gap: clamp(3rem, 7vw, 8rem);
+			margin-top: clamp(4rem, 7vw, 6.5rem);
+		}
+
+		.seleccion__grilla--una {
+			grid-template-columns: minmax(0, 1fr);
+			width: min(100%, 56rem);
+			margin-inline: auto;
+		}
+
+		.seleccion__columna {
+			display: flex;
+			flex-direction: column;
+			gap: clamp(5rem, 9vw, 9rem);
+		}
+
+		.seleccion__columna--b {
+			padding-top: clamp(6rem, 12vw, 13rem);
+		}
+
+		.pieza,
+		.pieza--completa,
+		.pieza--sola,
+		.pieza--principal {
+			width: 100%;
+			margin: 0;
+		}
+
+		/* Variación de escala dentro de cada columna. */
+		.seleccion__columna--a .pieza:nth-child(2) {
+			width: 70%;
+			margin-top: clamp(2rem, 5vw, 5rem);
+			margin-left: 16%;
+		}
+
+		.seleccion__columna--b .pieza:nth-child(2) {
+			width: 80%;
+		}
+
+		.seleccion__columna--b .pieza:nth-child(3) {
+			width: 68%;
+			margin-left: auto;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.pieza__marco :global(img),
+		.pieza__titulo {
+			transition: none;
+		}
+	}
+</style>

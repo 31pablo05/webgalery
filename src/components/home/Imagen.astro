@@ -1,6 +1,9 @@
 ---
-import {urlFor} from '../../lib/sanity.js'
+import {medidasImagen, urlFor} from '../../lib/sanity.js'
 
+// Con width y height, la imagen se recorta a ese formato (respetando el hotspot de Sanity).
+// Solo con width, se muestra entera con su proporción original: es lo que usan las obras.
+// Mientras carga, se ve la versión borrosa (LQIP) sobre el color dominante de la imagen.
 const {
 	source,
 	width,
@@ -12,27 +15,44 @@ const {
 
 const alt = Astro.props.alt || source?.alt || ''
 const tieneArchivo = Boolean(source?.asset)
-const src = tieneArchivo ? urlFor(source).width(width).height(height).url() : ''
+const natural = !height
+const medidas = natural && tieneArchivo ? medidasImagen(source) : null
+const alto = natural ? (medidas ? Math.round((width * medidas.alto) / medidas.ancho) : width) : height
+
+function url(ancho, altoPedido) {
+	const cadena = urlFor(source).width(ancho)
+	return (natural ? cadena : cadena.height(altoPedido)).url()
+}
+
+const src = tieneArchivo ? url(width, alto) : ''
 const chico = Math.round(width / 2)
-const altoChico = Math.round((height * chico) / width)
-const srcset = tieneArchivo
-	? `${urlFor(source).width(chico).height(altoChico).url()} ${chico}w, ${src} ${width}w`
-	: ''
+const altoChico = Math.round((alto * chico) / width)
+const srcChico = tieneArchivo ? url(chico, altoChico) : ''
+const srcset = srcChico && srcChico !== src ? `${srcChico} ${chico}w, ${src} ${width}w` : undefined
+
+const metadata = source?.asset?.metadata
+const lqip = metadata?.lqip || ''
+const dominante = metadata?.palette?.dominant?.background || ''
+const estilo = [dominante && `--dominante: ${dominante}`, lqip && `--lqip: url("${lqip}")`]
+	.filter(Boolean)
+	.join('; ')
 ---
 
 {
 	tieneArchivo && (
-		<img
-			src={src}
-			srcset={srcset}
-			sizes={sizes}
-			alt={alt}
-			width={width}
-			height={height}
-			class:list={['block h-full w-full object-cover', clase]}
-			loading={priority ? 'eager' : 'lazy'}
-			fetchpriority={priority ? 'high' : 'auto'}
-			decoding="async"
-		/>
+		<span class:list={['lqip', natural ? 'lqip--natural' : 'lqip--cubre', clase]} style={estilo || undefined}>
+			<img
+				src={src}
+				srcset={srcset}
+				sizes={srcset ? sizes : undefined}
+				alt={alt}
+				width={width}
+				height={alto}
+				loading={priority ? 'eager' : 'lazy'}
+				fetchpriority={priority ? 'high' : 'auto'}
+				decoding={priority ? 'sync' : 'async'}
+				data-nitida={priority ? undefined : ''}
+			/>
+		</span>
 	)
 }

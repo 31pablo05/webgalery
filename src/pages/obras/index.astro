@@ -4,7 +4,7 @@ import Encabezado from '../../components/obras/Encabezado.astro'
 import Galeria from '../../components/obras/Galeria.jsx'
 import { fetchGaleria } from '../../lib/sanity.js'
 
-const BAJADA = 'Una exploración del paisaje, la materia y el tiempo a través de la pintura.'
+const BAJADA = 'Dibujo, obra bidimensional y experimentación gráfica.'
 
 const { artista, configuracion, bajada, obras } = await fetchGaleria()
 const bajadaVisible = bajada || BAJADA

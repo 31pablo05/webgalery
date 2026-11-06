@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# originales de la artista (capturas con interfaz de Instagram): no se publican
+public/demo/celia-originales/

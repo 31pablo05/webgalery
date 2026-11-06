@@ -1,5 +1,4 @@
 ---
-// TODO: reemplazar estos valores con el documento "configuracion" de Sanity.
 const {
 	nombre = '',
 	subtitulo = '',
@@ -10,236 +9,201 @@ const {
 	youtube = '',
 } = Astro.props;
 
-const social = [
-	{ href: instagram, label: 'Instagram', name: 'instagram' },
-	{ href: vimeo, label: 'Vimeo', name: 'vimeo' },
-	{ href: youtube, label: 'YouTube', name: 'youtube' },
+const redes = [
+	{ href: instagram, label: 'Instagram' },
+	{ href: vimeo, label: 'Vimeo' },
+	{ href: youtube, label: 'YouTube' },
 ].filter((item) => item.href);
+
+const secciones = [
+	{ href: '/obras', label: 'Obras' },
+	{ href: '/audiovisual', label: 'Audiovisual' },
+	{ href: '/sobre-mi', label: 'Sobre mí' },
+	{ href: '/contacto', label: 'Contacto' },
+];
+
+const anio = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
 	<div class="site-footer__inner">
-		<a class="brand" href="/">
-			{nombre && <span class="brand__name">{nombre}</span>}
-			{subtitulo && <span class="brand__role">{subtitulo}</span>}
-		</a>
-
-		<div class="site-footer__meta">
-			{
-				email && (
-					<a class="meta-row" href={`mailto:${email}`}>
-						<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-							<rect x="3.25" y="5.25" width="17.5" height="13.5" />
-							<path d="M4 7.2 12 12.6 20 7.2" />
-						</svg>
-						<span>{email}</span>
-					</a>
-				)
-			}
-			{
-				ciudad && (
-					<p class="meta-row">
-						<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-							<path d="M12 21.2s6.25-5.3 6.25-10.05a6.25 6.25 0 1 0-12.5 0C5.75 15.9 12 21.2 12 21.2z" />
-							<circle cx="12" cy="11" r="1.9" />
-						</svg>
-						<span>{ciudad}</span>
-					</p>
-				)
-			}
+		<div class="site-footer__marca">
+			{nombre && (
+				<a class="site-footer__nombre" href="/">
+					{nombre}
+				</a>
+			)}
+			{subtitulo && <p class="site-footer__rol">{subtitulo}</p>}
 		</div>
 
-		{
-			social.length > 0 && (
-				<ul class="social">
-					{social.map((item) => (
+		<div class="site-footer__columnas">
+			<nav class="site-footer__col" aria-label="Secciones del sitio">
+				<p class="label">Secciones</p>
+				<ul>
+					{secciones.map((item) => (
 						<li>
-							<a
-								class="social__link"
-								href={item.href}
-								aria-label={item.label}
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								{item.name === 'instagram' && (
-									<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-										<rect x="3.75" y="3.75" width="16.5" height="16.5" />
-										<circle cx="12" cy="12" r="3.75" />
-										<rect class="icon__fill" x="16.6" y="6.1" width="1.4" height="1.4" />
-									</svg>
-								)}
-								{item.name === 'vimeo' && (
-									<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-										<rect x="3.75" y="3.75" width="16.5" height="16.5" />
-										<path d="M8 9.2 12 16l4-6.8" />
-									</svg>
-								)}
-								{item.name === 'youtube' && (
-									<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-										<rect x="2.75" y="6.25" width="18.5" height="11.5" />
-										<path d="M10.5 9.4v5.2L15.4 12l-4.9-2.6z" />
-									</svg>
-								)}
+							<a class="site-footer__link" href={item.href}>
+								{item.label}
 							</a>
 						</li>
 					))}
 				</ul>
-			)
-		}
+			</nav>
+
+			{
+				redes.length > 0 && (
+					<div class="site-footer__col">
+						<p class="label">Redes</p>
+						<ul>
+							{redes.map((item) => (
+								<li>
+									<a class="site-footer__link" href={item.href} target="_blank" rel="noopener noreferrer">
+										{item.label}
+										<span class="site-footer__externo" aria-hidden="true">
+											↗
+										</span>
+										<span class="sr-only"> (se abre en otra pestaña)</span>
+									</a>
+								</li>
+							))}
+						</ul>
+					</div>
+				)
+			}
+
+			{
+				(email || ciudad) && (
+					<div class="site-footer__col">
+						<p class="label">Contacto</p>
+						<ul>
+							{email && (
+								<li>
+									<a class="site-footer__link" href={`mailto:${email}`}>
+										{email}
+									</a>
+								</li>
+							)}
+							{ciudad && <li class="site-footer__dato">{ciudad}</li>}
+						</ul>
+					</div>
+				)
+			}
+		</div>
+	</div>
+
+	<div class="site-footer__base">
+		<p>© {anio}{nombre && ` ${nombre}`}</p>
 	</div>
 </footer>
 
 <style>
 	.site-footer {
+		padding: 4rem var(--gutter) 2rem;
 		border-top: 1px solid var(--color-line);
-		padding: 5.5rem 1.5rem;
 		background-color: var(--color-bg);
 		color: var(--color-ink);
 	}
 
 	.site-footer__inner {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 2.75rem;
+		display: grid;
+		gap: 3rem;
 	}
 
-	.brand {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.4rem;
-		max-width: 100%;
+	.site-footer__nombre {
+		display: inline-block;
 		color: inherit;
-		text-decoration: none;
-	}
-
-	.brand__name,
-	.brand__role {
-		display: block;
-		max-width: 100%;
 		font-family: var(--font-display);
+		font-size: clamp(2.25rem, 6vw, 4.5rem);
 		font-weight: 400;
-		line-height: 1.15;
-		letter-spacing: 0.35em;
-		text-transform: uppercase;
-		overflow-wrap: anywhere;
-		margin-right: -0.35em;
-	}
-
-	.brand__name {
-		font-size: 0.8125rem;
-	}
-
-	.brand__role {
-		font-size: 0.625rem;
-	}
-
-	.site-footer__meta {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.9rem;
-	}
-
-	.meta-row {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.7rem;
-		margin: 0;
-		color: var(--color-ink);
-		font-family: var(--font-body);
-		font-size: 0.9375rem;
-		font-weight: 400;
-		line-height: 1.4;
+		line-height: 0.95;
+		letter-spacing: -0.035em;
 		text-decoration: none;
-		transition: color 0.3s ease;
 	}
 
-	a.meta-row {
-		position: relative;
-	}
-
-	a.meta-row::before {
-		content: '';
-		position: absolute;
-		inset: -0.7rem -0.25rem;
-	}
-
-	a.meta-row:hover {
+	.site-footer__rol {
+		margin-top: 0.75rem;
 		color: var(--color-muted);
+		font-size: 0.9375rem;
 	}
 
-	.social {
-		display: flex;
-		align-items: center;
-		gap: 1.35rem;
-		margin: 0;
+	.site-footer__columnas {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 2.25rem 1.5rem;
+	}
+
+	.site-footer__col ul {
+		display: grid;
+		gap: 0.55rem;
+		margin: 0.9rem 0 0;
 		padding: 0;
 		list-style: none;
 	}
 
-	.social__link {
+	.site-footer__link,
+	.site-footer__dato {
 		position: relative;
 		display: inline-flex;
+		align-items: baseline;
+		gap: 0.35rem;
 		color: var(--color-ink);
-		transition: color 0.3s ease;
+		font-size: 0.9375rem;
+		line-height: 1.4;
+		text-decoration: none;
+		overflow-wrap: anywhere;
 	}
 
-	.social__link::before {
+	.site-footer__link::before {
 		content: '';
 		position: absolute;
-		inset: -0.75rem;
+		inset: -0.45rem -0.3rem;
 	}
 
-	.social__link:hover {
+	.site-footer__link:hover {
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.25em;
+	}
+
+	.site-footer__externo {
 		color: var(--color-muted);
+		font-size: 0.8em;
 	}
 
-	.icon {
-		width: 1.25rem;
-		height: 1.25rem;
-		flex: 0 0 auto;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 1.5;
-		stroke-linecap: square;
-		stroke-linejoin: miter;
+	.site-footer__base {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.5rem 2rem;
+		margin-top: 4rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--color-line);
+		color: var(--color-muted);
+		font-size: 0.8125rem;
 	}
 
-	.icon__fill {
-		fill: currentColor;
-		stroke: none;
-	}
-
-	.brand:focus-visible,
-	.meta-row:focus-visible,
-	.social__link:focus-visible {
+	.site-footer__nombre:focus-visible,
+	.site-footer__link:focus-visible {
 		outline: 1px solid var(--color-ink);
 		outline-offset: 4px;
 	}
 
 	@media (min-width: 64rem) {
 		.site-footer {
-			padding: 7rem 2.5rem;
+			padding-top: 5.5rem;
 		}
 
 		.site-footer__inner {
-			display: grid;
-			grid-template-columns: 1fr auto 1fr;
-			align-items: center;
-			column-gap: 2rem;
+			grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+			align-items: start;
 		}
 
-		.social {
-			justify-self: end;
+		.site-footer__columnas {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
-	}
 
-	@media (prefers-reduced-motion: reduce) {
-		.meta-row,
-		.social__link {
-			transition: none;
+		.site-footer__base {
+			margin-top: 6rem;
 		}
 	}
 </style>

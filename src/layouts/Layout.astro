@@ -20,14 +20,20 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 const texto = String(description || '').replace(/\s+/g, ' ').trim();
 const meta = texto.length > 160 ? `${texto.slice(0, 157).replace(/\s+\S*$/, '').trim()}…` : texto;
 const imagenOg = ogImage ? new URL(ogImage, Astro.site ?? Astro.url).href : '';
+// Mientras el sitio sea una demo no se indexa. En el lanzamiento: definir INDEXAR=true.
+const indexar = ['true', '1', 'si', 'sí'].includes(
+  String(import.meta.env.INDEXAR ?? process.env.INDEXAR ?? '').trim().toLowerCase(),
+);
 ---
 
 <html lang="es" class="no-js">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8f7f5" />
     <title>{title}</title>
     <meta name="description" content={meta} />
+    {!indexar && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={meta} />
@@ -41,7 +47,7 @@ const imagenOg = ogImage ? new URL(ogImage, Astro.site ?? Astro.url).href : '';
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Jost:wght@300;400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500&family=Instrument+Serif:ital@1&display=swap"
       rel="stylesheet"
     />
     <script is:inline>
@@ -63,6 +69,16 @@ const imagenOg = ogImage ? new URL(ogImage, Astro.site ?? Astro.url).href : '';
       youtube={youtube}
     />
     <script>
+      // Fundido de la vista borrosa (LQIP) a la imagen nítida cuando termina de cargar.
+      document.querySelectorAll('img[data-nitida]').forEach((img) => {
+        const marcar = () => img.classList.add('is-nitida');
+        if (img.complete) marcar();
+        else {
+          img.addEventListener('load', marcar, { once: true });
+          img.addEventListener('error', marcar, { once: true });
+        }
+      });
+
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const nodes = document.querySelectorAll('.fade-in');
 

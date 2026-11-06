@@ -1,111 +1,403 @@
 ---
 import Imagen from './Imagen.astro'
+import { medidasImagen } from '../../lib/sanity.js'
 
-const { proyectos = [], artista } = Astro.props
+const { proyectos = [], artista, vimeo = '' } = Astro.props
 const retrato = artista?.retrato
 const bio = artista?.bioCorta || ''
+const tieneRetrato = Boolean(retrato?.asset)
+
+// Sin proyectos cargados, la banda muestra la imagen de la página Audiovisual como registro de
+// proceso: no se presenta como portada de ningún video.
+const fondo = artista?.heroAudiovisual?.imagen
+const tieneFondo = Boolean(fondo?.asset)
+const bajadaAudiovisual = artista?.heroAudiovisual?.bajada?.trim() || ''
+const [principal, segundo] = proyectos
+// Ninguna imagen se muestra más ancha que su resolución original.
+const anchoFondo = tieneFondo ? medidasImagen(fondo).ancho : 0
+const anchoRetrato = tieneRetrato ? medidasImagen(retrato).ancho : 0
+const hayAudiovisual = Boolean(principal) || tieneFondo || Boolean(vimeo)
 
 function ficha(proyecto) {
-	const origen = proyecto.anio ? `Video, ${proyecto.anio}` : 'Video'
-	return proyecto.duracion ? `${origen} · ${proyecto.duracion} min` : origen
+	const partes = ['Video']
+	if (proyecto.anio) partes.push(String(proyecto.anio))
+	if (proyecto.duracion) partes.push(`${proyecto.duracion} min`)
+	return partes.join(' · ')
 }
 ---
 
 {
-	(proyectos.length > 0 || bio || retrato?.asset) && (
-		<section
-			class:list={[
-				'fade-in grid grid-cols-1 border-t border-[var(--color-line)]',
-				proyectos.length > 0 && (bio || retrato?.asset) && 'lg:grid-cols-2',
-			]}
-		>
-			{proyectos.length > 0 && (
-			<div
-				class:list={[
-					'px-6 py-16 lg:px-10 lg:py-24',
-					(bio || retrato?.asset) && 'lg:border-r lg:border-[var(--color-line)]',
-				]}
-			>
-				<div class="flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
-					<h2 class="text-lg font-light uppercase tracking-[0.22em]">Audiovisual</h2>
-					<a class="link-arrow shrink-0 text-xs uppercase tracking-[0.18em]" href="/audiovisual">
-						Ver todo el audiovisual <span class="arrow" aria-hidden="true">→</span>
-					</a>
-				</div>
-				<ul class="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2">
-					{proyectos.map((proyecto) => (
-						<li>
-							<a class="group block" href="/audiovisual">
-								<div class="relative aspect-video overflow-hidden bg-[var(--color-surface)]">
-									{proyecto.miniatura?.asset ? (
-										<Imagen
-											source={proyecto.miniatura}
-											alt={proyecto.miniatura?.alt || proyecto.titulo}
-											width={960}
-											height={540}
-											sizes="(min-width: 1024px) 24vw, 100vw"
-											class="absolute inset-0"
-										/>
-									) : (
-										proyecto.miniaturaUrl && (
-											<img
-												src={proyecto.miniaturaUrl}
-												alt={proyecto.titulo || 'Video'}
-												width="960"
-												height="540"
-												loading="lazy"
-												decoding="async"
-												class="absolute inset-0 h-full w-full object-cover"
-											/>
-										)
-									)}
-									<span class="pointer-events-none absolute inset-0 grid place-items-center text-white">
-										<svg class="h-11 w-11 fill-none stroke-current stroke-[1.5]" viewBox="0 0 48 48" aria-hidden="true">
-											<circle cx="24" cy="24" r="18" />
-											<path d="M21 17.5 32 24 21 30.5Z" />
-										</svg>
-									</span>
-								</div>
-								<p class="mt-3 text-base font-light">{proyecto.titulo}</p>
-								<p class="label mt-1">{ficha(proyecto)}</p>
-							</a>
-						</li>
-					))}
-				</ul>
+	hayAudiovisual && (
+		<section class="cine" aria-labelledby="cine-titulo">
+			<div class="cine__cabecera fade-in">
+				<p class="label cine__label">Imagen en movimiento</p>
+				<h2 id="cine-titulo" class="titulo-seccion">
+					Audiovisual
+				</h2>
+				{bajadaAudiovisual && <p class="cine__texto">{bajadaAudiovisual}</p>}
 			</div>
+
+			{principal ? (
+				<div class:list={['cine__proyectos', segundo && 'cine__proyectos--dos']}>
+					{[principal, segundo].filter(Boolean).map((proyecto, indice) => (
+						<a class:list={['cine__proyecto fade-in', indice === 0 && 'cine__proyecto--principal']} href="/audiovisual">
+							<div class="cine__cuadro">
+								{proyecto.miniatura?.asset ? (
+									<Imagen
+										source={proyecto.miniatura}
+										alt={proyecto.miniatura?.alt || proyecto.titulo}
+										width={indice === 0 ? 1600 : 960}
+										height={indice === 0 ? 686 : 540}
+										sizes={indice === 0 ? '100vw' : '(min-width: 64rem) 34vw, 100vw'}
+									/>
+								) : (
+									proyecto.miniaturaUrl && (
+										<img
+											src={proyecto.miniaturaUrl}
+											alt={proyecto.titulo || 'Video'}
+											width="960"
+											height="540"
+											loading="lazy"
+											decoding="async"
+											class="block h-full w-full object-cover"
+										/>
+									)
+								)}
+								<span class="cine__play" aria-hidden="true">
+									<svg viewBox="0 0 48 48">
+										<circle cx="24" cy="24" r="21" />
+										<path d="M20 16.5 32 24 20 31.5Z" />
+									</svg>
+								</span>
+							</div>
+							<p class="cine__pie">
+								<span class="cine__titulo titulo-obra">{proyecto.titulo}</span>
+								<span class="cine__meta">{ficha(proyecto)}</span>
+							</p>
+						</a>
+					))}
+				</div>
+			) : (
+				tieneFondo && (
+					<figure class="cine__registro fade-in" style={`--ancho-natural: ${anchoFondo}px`}>
+						<div class="cine__cuadro">
+							<Imagen
+								source={fondo}
+								alt={fondo.alt || ''}
+								width={1600}
+								height={686}
+								sizes="100vw"
+							/>
+						</div>
+						{fondo.alt && <figcaption class="cine__meta">{fondo.alt}</figcaption>}
+					</figure>
+				)
 			)}
 
-			{(bio || retrato?.asset) && (
-			<div
-				class:list={[
-					'px-6 py-16 lg:px-10 lg:py-24',
-					proyectos.length > 0 && 'border-t border-[var(--color-line)] lg:border-t-0',
-				]}
-			>
-				<h2 class="text-lg font-light uppercase tracking-[0.22em]">Sobre la artista</h2>
-				<div class="mt-10 grid grid-cols-1 items-start gap-8 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-					<div class="relative aspect-[3/4] overflow-hidden bg-[var(--color-surface)]">
-						<Imagen
-							source={retrato}
-							alt={retrato?.alt || artista?.nombre || 'Retrato'}
-							width={720}
-							height={960}
-							sizes="(min-width: 640px) 28vw, 80vw"
-							class="absolute inset-0 grayscale"
-						/>
-					</div>
-					<div>
-						{bio && <p class="max-w-md text-sm leading-relaxed">{bio}</p>}
-						<a
-							class="link-arrow mt-6 text-xs uppercase tracking-[0.18em] underline decoration-1 underline-offset-[0.35em]"
-							href="/sobre-mi"
-						>
-							Conocer más <span class="arrow" aria-hidden="true">→</span>
-						</a>
-					</div>
-				</div>
+			<div class="cine__enlaces fade-in">
+				<a class="enlace" href="/audiovisual">
+					Ver sección audiovisual <span class="arrow" aria-hidden="true">→</span>
+				</a>
+				{vimeo && (
+					<a class="enlace" href={vimeo} target="_blank" rel="noopener noreferrer">
+						Canal en Vimeo <span aria-hidden="true">↗</span>
+						<span class="sr-only">(se abre en otra pestaña)</span>
+					</a>
+				)}
 			</div>
-			)}
 		</section>
 	)
 }
+
+{
+	(bio || tieneRetrato) && (
+		<section class:list={['artista', !tieneRetrato && 'artista--sin-foto']} aria-labelledby="artista-titulo">
+			<div class="artista__intro fade-in">
+				<h2 id="artista-titulo" class="label">
+					Sobre la artista
+				</h2>
+				{bio && <p class="artista__texto titulo-obra">{bio}</p>}
+			</div>
+			{tieneRetrato && (
+				<figure class="artista__foto fade-in" style={`--ancho-natural: ${anchoRetrato}px`}>
+					<Imagen
+						source={retrato}
+						alt={retrato.alt || artista?.nombre || ''}
+						width={1000}
+						sizes="(min-width: 64rem) 40vw, 82vw"
+					/>
+				</figure>
+			)}
+			<a class="enlace artista__enlace fade-in" href="/sobre-mi">
+				Leer biografía <span class="arrow" aria-hidden="true">→</span>
+			</a>
+		</section>
+	)
+}
+
+<style>
+	/* Banda audiovisual: fondo carbón, encuadre panorámico. */
+	.cine {
+		margin-top: var(--seccion);
+		padding: clamp(4rem, 9vw, 8rem) var(--gutter);
+		background-color: var(--color-dark);
+		color: var(--color-bg);
+	}
+
+	.cine__cabecera {
+		display: grid;
+		gap: 0.9rem;
+		justify-items: start;
+	}
+
+	.cine__label,
+	.cine__meta {
+		color: rgba(248, 247, 245, 0.62);
+	}
+
+	.cine__texto {
+		max-width: 28rem;
+		margin-top: 0.4rem;
+		color: rgba(248, 247, 245, 0.82);
+		font-size: 1rem;
+		line-height: 1.6;
+	}
+
+	.cine__proyectos,
+	.cine__registro {
+		display: grid;
+		gap: 2.5rem;
+		margin: 2.75rem calc(-1 * var(--gutter)) 0;
+	}
+
+	.cine__registro {
+		max-width: var(--ancho-natural, none);
+	}
+
+	.cine__proyecto {
+		display: block;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.cine__cuadro {
+		position: relative;
+		overflow: hidden;
+		aspect-ratio: 16 / 9;
+		background-color: #222;
+	}
+
+	.cine__cuadro :global(img) {
+		transition:
+			opacity 0.8s var(--ease),
+			transform 1.2s var(--ease);
+	}
+
+	.cine__play {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		color: #fff;
+		pointer-events: none;
+	}
+
+	.cine__play svg {
+		width: 3.25rem;
+		height: 3.25rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.25;
+	}
+
+	.cine__pie,
+	.cine__registro figcaption {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.35rem 1.5rem;
+		margin-top: 0.9rem;
+		padding-inline: var(--gutter);
+		font-size: 0.875rem;
+		line-height: 1.45;
+	}
+
+	.cine__titulo {
+		font-size: 1.25rem;
+		line-height: 1.2;
+	}
+
+	.cine__enlaces {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.25rem 2.25rem;
+		margin-top: 2.5rem;
+	}
+
+	.cine__proyecto:focus-visible {
+		outline: 1px solid #fff;
+		outline-offset: 4px;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.cine__proyecto:hover .cine__cuadro :global(img) {
+			opacity: 0.8;
+			transform: scale(1.015);
+		}
+	}
+
+	@media (min-width: 48rem) {
+		.cine__proyectos,
+		.cine__registro {
+			margin-inline: 0;
+		}
+
+		.cine__pie,
+		.cine__registro figcaption {
+			padding-inline: 0;
+		}
+
+		.cine__cuadro {
+			aspect-ratio: 21 / 9;
+		}
+	}
+
+	@media (min-width: 64rem) {
+		.cine__cabecera {
+			grid-template-columns: repeat(12, minmax(0, 1fr));
+			column-gap: 1.5rem;
+			align-items: end;
+		}
+
+		.cine__label {
+			grid-column: 1 / 4;
+			grid-row: 1;
+			padding-bottom: 0.6rem;
+		}
+
+		.cine__cabecera .titulo-seccion {
+			grid-column: 4 / 9;
+			grid-row: 1;
+		}
+
+		.cine__texto {
+			grid-column: 9 / -1;
+			grid-row: 1;
+			margin: 0;
+		}
+
+		.cine__proyectos,
+		.cine__registro {
+			margin-top: clamp(3.5rem, 6vw, 5.5rem);
+		}
+
+		/* Con dos videos: el segundo, más chico y desplazado a la derecha. */
+		.cine__proyectos--dos {
+			grid-template-columns: repeat(12, minmax(0, 1fr));
+			column-gap: 1.5rem;
+			row-gap: 3rem;
+		}
+
+		.cine__proyectos--dos .cine__proyecto--principal {
+			grid-column: 1 / -1;
+		}
+
+		.cine__proyectos--dos .cine__proyecto:not(.cine__proyecto--principal) {
+			grid-column: 8 / -1;
+		}
+
+		.cine__proyectos--dos .cine__proyecto:not(.cine__proyecto--principal) .cine__cuadro {
+			aspect-ratio: 16 / 9;
+		}
+
+		.cine__enlaces {
+			justify-content: flex-end;
+		}
+	}
+
+	/* Sobre la artista: fotografía grande y texto breve, en composición asimétrica. */
+	.artista {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas:
+			'intro'
+			'foto'
+			'enlace';
+		padding: var(--seccion) var(--gutter);
+	}
+
+	.artista__intro {
+		grid-area: intro;
+	}
+
+	.artista__texto {
+		margin-top: 1.25rem;
+		font-size: clamp(1.625rem, 2.6vw, 2.375rem);
+		line-height: 1.16;
+		text-wrap: pretty;
+	}
+
+	.artista__foto {
+		grid-area: foto;
+		width: 82%;
+		max-width: var(--ancho-natural, none);
+		margin: 2.5rem 0 0 auto;
+		background-color: var(--color-surface);
+	}
+
+	.artista__enlace {
+		grid-area: enlace;
+		justify-self: start;
+		margin-top: 2rem;
+	}
+
+	.artista--sin-foto .artista__intro {
+		max-width: 48rem;
+	}
+
+	@media (min-width: 48rem) {
+		.artista__foto {
+			width: 64%;
+		}
+	}
+
+	@media (min-width: 64rem) {
+		.artista {
+			grid-template-columns: repeat(12, minmax(0, 1fr));
+			grid-template-rows: minmax(0, 1fr) auto;
+			grid-template-areas: none;
+			column-gap: 1.5rem;
+		}
+
+		.artista__foto {
+			grid-column: 1 / 6;
+			grid-row: 1 / span 2;
+			width: 100%;
+			margin: 0;
+		}
+
+		.artista__intro {
+			grid-column: 7 / -1;
+			grid-row: 1;
+			align-self: end;
+		}
+
+		.artista__enlace {
+			grid-column: 7 / -1;
+			grid-row: 2;
+			align-self: end;
+			margin-top: 2.5rem;
+		}
+
+		.artista--sin-foto .artista__intro,
+		.artista--sin-foto .artista__enlace {
+			grid-column: 4 / -2;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.cine__cuadro :global(img) {
+			transition: none;
+		}
+	}
+</style>

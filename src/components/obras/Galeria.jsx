@@ -1,11 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 
-const TABS = [
-	{ id: 'todas', label: 'Todas' },
-	{ id: 'pintura', label: 'Pintura' },
+const CATEGORIAS = [
 	{ id: 'dibujo', label: 'Dibujo' },
-	{ id: 'series', label: 'Series' },
+	{ id: 'obra-bidimensional', label: 'Obra bidimensional' },
+	{ id: 'experimentacion-grafica', label: 'Experimentación gráfica' },
+	{ id: 'intervencion', label: 'Intervención' },
 ]
+
+// Solo se ofrecen los filtros que tienen obras; con menos de dos categorías no hay barra.
+function pestanias(obras) {
+	const categorias = CATEGORIAS.filter((categoria) => obras.some((obra) => obra.categoria === categoria.id))
+	if (categorias.length < 2) return []
+	const series = obras.some((obra) => obra.serie) ? [{ id: 'series', label: 'Series' }] : []
+	return [{ id: 'todas', label: 'Todas' }, ...categorias, ...series]
+}
 
 const ESTADOS = {
 	disponible: { marca: '●', texto: 'Disponible', tenue: false },
@@ -18,10 +26,8 @@ function metaDe(obra) {
 }
 
 function filtrar(obras, filtro) {
-	if (filtro === 'pintura' || filtro === 'dibujo') {
-		return obras.filter((obra) => obra.categoria === filtro)
-	}
 	if (filtro === 'series') return obras.filter((obra) => obra.serie)
+	if (filtro !== 'todas') return obras.filter((obra) => obra.categoria === filtro)
 	return obras
 }
 
@@ -128,14 +134,16 @@ export default function Galeria({ obras = [] }) {
 		}, 200)
 	}
 
+	const tabs = pestanias(obras)
 	const visibles = filtrar(obras, filtro)
 	const grupos = filtro === 'series' ? agrupar(visibles) : []
 
 	return (
 		<div>
+			{tabs.length > 0 && (
 			<div className="galeria-barra">
 				<div className="galeria-tabs" role="tablist" aria-label="Filtrar obras">
-					{TABS.map((tab, index) => (
+					{tabs.map((tab, index) => (
 						<span key={tab.id} className="galeria-par">
 							{index > 0 && (
 								<span className="galeria-punto" aria-hidden="true">
@@ -159,8 +167,13 @@ export default function Galeria({ obras = [] }) {
 					{textoContador(visibles.length)}
 				</p>
 			</div>
+			)}
 
-			<div className={cambiando ? 'galeria-resultados is-cambiando mt-10' : 'galeria-resultados mt-10'}>
+			<div
+				className={['galeria-resultados', cambiando && 'is-cambiando', tabs.length > 0 && 'mt-10']
+					.filter(Boolean)
+					.join(' ')}
+			>
 				{visibles.length === 0 && (
 					<p className="obra-ficha__vacia">No hay obras en esta selección.</p>
 				)}

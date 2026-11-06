@@ -32,39 +32,6 @@ export function maximoMarcados(type, field, maximo, mensaje) {
     })
 }
 
-export async function validarLimiteObras(context) {
-  const id = idPublicado(context)
-  if (!id) return true
-
-  const client = context.getClient({apiVersion: API_VERSION})
-  const yaPublicada = await client.fetch(
-    `defined(*[_id == $id][0]._id)`,
-    {id},
-    {perspective: 'published', signal: context.signal},
-  )
-  if (yaPublicada) return true
-
-  const limite = await client.fetch(
-    `*[_id == "configuracion"][0].limiteObras`,
-    {},
-    {perspective: 'published', signal: context.signal},
-  )
-  if (typeof limite !== 'number') {
-    return 'Antes de publicar una obra nueva, un administrador tiene que guardar Configuración con el límite del plan.'
-  }
-
-  const cantidad = await client.fetch(
-    `count(*[_type == "obra"])`,
-    {},
-    {perspective: 'published', signal: context.signal},
-  )
-  if (cantidad >= limite) {
-    return `Tu plan incluye hasta ${limite} obras. Para sumar más, consultá la ampliación con MediaDesign.`
-  }
-
-  return true
-}
-
 export function esAdministrador(currentUser) {
   return Boolean(currentUser?.roles?.some((role) => role.name === 'administrator'))
 }

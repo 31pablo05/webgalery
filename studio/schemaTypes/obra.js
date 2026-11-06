@@ -1,8 +1,9 @@
 import {defineField, defineType} from 'sanity'
 import {campoImagen, imagenEnLista} from './imagen.js'
-import {maximoMarcados, validarLimiteObras} from './validaciones.js'
+import {maximoMarcados} from './validaciones.js'
 
 const estados = {
+  'sin-especificar': 'Sin especificar',
   disponible: 'Disponible',
   reservada: 'Reservada',
   vendida: 'Vendida',
@@ -12,7 +13,6 @@ export const obra = defineType({
   name: 'obra',
   title: 'Obra',
   type: 'document',
-  validation: (rule) => rule.custom((_, context) => validarLimiteObras(context)),
   fields: [
     defineField({
       name: 'titulo',
@@ -54,11 +54,13 @@ export const obra = defineType({
       name: 'estado',
       title: 'Estado',
       type: 'string',
-      description: 'Si se puede comprar, si alguien la reservó o si ya se vendió.',
-      initialValue: 'disponible',
+      description:
+        'Dejalo en Sin especificar si no querés mostrar información comercial. Si elegís otro estado, se muestra en la ficha.',
+      initialValue: 'sin-especificar',
       options: {
         layout: 'radio',
         list: [
+          {title: 'Sin especificar', value: 'sin-especificar'},
           {title: 'Disponible', value: 'disponible'},
           {title: 'Reservada', value: 'reservada'},
           {title: 'Vendida', value: 'vendida'},
@@ -70,15 +72,17 @@ export const obra = defineType({
       name: 'categoria',
       title: 'Categoría',
       type: 'string',
-      description: 'Define en qué filtro de la galería aparece: Pintura o Dibujo.',
+      description: 'Define en qué filtro de la galería aparece.',
       options: {
         layout: 'radio',
         list: [
-          {title: 'Pintura', value: 'pintura'},
           {title: 'Dibujo', value: 'dibujo'},
+          {title: 'Obra bidimensional', value: 'obra-bidimensional'},
+          {title: 'Experimentación gráfica', value: 'experimentacion-grafica'},
+          {title: 'Intervención', value: 'intervencion'},
         ],
       },
-      validation: (rule) => rule.required().error('Elegí si es pintura o dibujo.'),
+      validation: (rule) => rule.required().error('Elegí una categoría.'),
     }),
     defineField({
       name: 'serie',

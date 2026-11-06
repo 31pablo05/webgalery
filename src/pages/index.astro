@@ -8,15 +8,14 @@ import { fetchInicio, urlFor } from '../lib/sanity.js'
 const { artista, configuracion, destacadas, audiovisual } = await fetchInicio()
 const hero = artista?.heroInicio
 const nombre = artista?.nombre || ''
-const titulo = nombre ? `Inicio — ${nombre}` : 'Inicio'
+const titulo = nombre ? `${nombre} — ${artista?.subtitulo || 'Artista visual'}` : 'Inicio'
 const imagenOg = hero?.imagen?.asset ? hero.imagen : artista?.retrato?.asset ? artista.retrato : null
 const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : undefined
-const tieneTituloHero = [hero?.linea1, hero?.linea2, hero?.linea3].some((linea) => (linea || '').trim())
 ---
 
 <Layout
 	title={titulo}
-	description={hero?.bajada || artista?.bioCorta || 'Pintura y proyectos audiovisuales.'}
+	description={hero?.bajada || artista?.bioCorta || 'Dibujo, obra bidimensional, experimentación gráfica y producción audiovisual.'}
 	ogImage={ogImage}
 	ogImageAlt={imagenOg?.alt || nombre || 'Inicio'}
 	nombre={artista?.nombre}
@@ -27,12 +26,11 @@ const tieneTituloHero = [hero?.linea1, hero?.linea2, hero?.linea3].some((linea) 
 	vimeo={configuracion?.vimeo}
 	youtube={configuracion?.youtube}
 >
-	{!tieneTituloHero && <h1 class="sr-only">{nombre || 'Inicio'}</h1>}
-	<Hero hero={hero} />
+	<Hero hero={hero} nombre={nombre} subtitulo={artista?.subtitulo} />
 	<ObrasDestacadas
 		destacadas={destacadas}
 		obra={configuracion?.obraPrincipal}
 		whatsapp={configuracion?.whatsapp}
 	/>
-	<Presentacion proyectos={audiovisual} artista={artista} />
+	<Presentacion proyectos={audiovisual} artista={artista} vimeo={configuracion?.vimeo} />
 </Layout>

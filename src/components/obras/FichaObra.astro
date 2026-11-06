@@ -8,8 +8,10 @@ const ESTADOS = {
 }
 
 const CATEGORIAS = {
-	pintura: 'Pintura',
 	dibujo: 'Dibujo',
+	'obra-bidimensional': 'Obra bidimensional',
+	'experimentacion-grafica': 'Experimentación gráfica',
+	intervencion: 'Intervención',
 }
 
 const estado = ESTADOS[obra?.estado] || null
@@ -70,7 +72,7 @@ const linkConsulta = consultaWhatsapp(whatsapp, obra?.titulo, obra?.anio)
 				target="_blank"
 				rel="noopener noreferrer"
 			>
-				{vendida ? 'Consultar por obras similares' : 'Consultar por esta obra'}
+				{vendida ? 'Consultar por obras similares' : estado ? 'Consultar por esta obra' : 'Consultar sobre esta obra'}
 				<span class="arrow" aria-hidden="true">→</span>
 			</a>
 		)

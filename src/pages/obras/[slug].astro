@@ -9,10 +9,8 @@ export async function getStaticPaths() {
 	return fetchPaginasObra()
 }
 
-const TEXTO_ENVIO = 'Envío nacional e internacional. También disponible para colección privada.'
-
 const { obra, artista, configuracion, relacionadas } = Astro.props
-const envio = configuracion?.envioColeccion || TEXTO_ENVIO
+const envio = configuracion?.envioColeccion || ''
 const titulo = artista?.nombre ? `${obra.titulo} — ${artista.nombre}` : obra.titulo
 const descripcion = obra.descripcionCorta || (artista?.nombre ? `${obra.titulo}, obra de ${artista.nombre}.` : obra.titulo)
 ---

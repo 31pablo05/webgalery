@@ -5,8 +5,9 @@ import {createImageUrlBuilder} from '@sanity/image-url'
 import * as demo from '../data/demo.js'
 
 const API_VERSION = '2026-11-05'
-const LIMITE_SI_NO_HAY_CONFIG = 30
-const COLOR_SUPERFICIE = '#edeae4'
+const COLOR_SUPERFICIE = '#efedea'
+// Anchos de las variantes generadas para las imágenes de demo (archivo-400.webp, archivo-800.webp...).
+const ANCHOS_DEMO = [400, 800, 1200]
 
 function leerVite(nombre) {
   try {
@@ -40,13 +41,35 @@ const archivosDemo = new Map()
 
 function datosDemo(source) {
   const ref = source?.asset?._ref || source?.asset?._id || ''
-  const coincide = String(ref).match(/^image-demo-(.+)-(\d+)x(\d+)-[a-z0-9]+$/)
+  const coincide = String(ref).match(/^image-demo-(.+)-(\d+)x(\d+)-([a-z0-9]+)$/)
   if (!coincide) return null
   return {
-    archivo: `${coincide[1]}.jpg`,
+    nombre: coincide[1],
+    extension: coincide[4],
+    archivo: `${coincide[1]}.${coincide[4]}`,
     ancho: Number(coincide[2]),
     alto: Number(coincide[3]),
   }
+}
+
+function archivoDemo(archivo) {
+  if (!archivosDemo.has(archivo)) {
+    const ruta = join(process.cwd(), 'public', 'demo', archivo)
+    archivosDemo.set(archivo, existsSync(ruta) ? `/demo/${archivo}` : '')
+  }
+  return archivosDemo.get(archivo)
+}
+
+// Devuelve la variante más chica que cubre el ancho pedido; si no hay, el archivo completo.
+function varianteDemo(datos, anchoPedido) {
+  if (anchoPedido > 0) {
+    for (const ancho of ANCHOS_DEMO) {
+      if (ancho < anchoPedido || ancho >= datos.ancho) continue
+      const variante = archivoDemo(`${datos.nombre}-${ancho}.${datos.extension}`)
+      if (variante) return variante
+    }
+  }
+  return archivoDemo(datos.archivo)
 }
 
 function rectangulo(ancho, alto) {
@@ -72,11 +95,7 @@ function cadenaDemo(source) {
     },
     url() {
       if (!datos) return ''
-      if (!archivosDemo.has(datos.archivo)) {
-        const ruta = join(process.cwd(), 'public', 'demo', datos.archivo)
-        archivosDemo.set(datos.archivo, existsSync(ruta) ? `/demo/${datos.archivo}` : '')
-      }
-      const archivo = archivosDemo.get(datos.archivo)
+      const archivo = varianteDemo(datos, anchoPedido)
       if (archivo) return archivo
       const recorte = anchoPedido > 0 && altoPedido > 0
       return rectangulo(recorte ? anchoPedido : datos.ancho, recorte ? altoPedido : datos.alto)
@@ -90,30 +109,117 @@ export function urlFor(source) {
   return builder.image(source).auto('format')
 }
 
-function limiteDe(valor) {
-  return typeof valor === 'number' && valor > 0 ? valor : LIMITE_SI_NO_HAY_CONFIG
-}
-
-export async function getLimiteObras() {
-  if (enDemo) return limiteDe(demo.configuracion.limiteObras)
-  const limite = await client.fetch(`*[_id == "configuracion"][0].limiteObras`)
-  return limiteDe(limite)
-}
-
 export async function fetchObras(filtro = '', params = {}) {
-  const limitePlan = await getLimiteObras()
-  if (enDemo) return demo.obras.slice(0, limitePlan)
-  const permitidas = `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) [0...$limitePlan]`
-  const query = filtro ? `${permitidas}[${filtro}]` : permitidas
-  return client.fetch(query, {...params, limitePlan})
+  if (enDemo) return demo.obras
+  const publicadas = `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc)`
+  const query = filtro ? `${publicadas}[${filtro}]` : publicadas
+  return client.fetch(query, params)
 }
+
+// Además de la referencia, trae medidas, la vista borrosa (LQIP) y el color dominante de cada imagen.
+const metadatosImagen = `metadata {
+    lqip,
+    dimensions { width, height },
+    palette { dominant { background } }
+  }`
 
 const imagen = `{
   alt,
   crop,
   hotspot,
-  asset
+  asset->{
+    _id,
+    ${metadatosImagen}
+  }
 }`
+
+// En modo demo, la vista borrosa y el color dominante se generan durante el build con sharp.
+function colorHex({r, g, b}) {
+  return `#${[r, g, b].map((valor) => Math.round(valor).toString(16).padStart(2, '0')).join('')}`
+}
+
+async function completarImagenesDemo() {
+  let sharp
+  try {
+    sharp = (await import('sharp')).default
+  } catch {
+    return
+  }
+  const imagenes = []
+  const visitar = (valor) => {
+    if (!valor || typeof valor !== 'object') return
+    if (Array.isArray(valor)) return valor.forEach(visitar)
+    if (String(valor.asset?._ref || '').startsWith('image-demo-')) imagenes.push(valor)
+    else Object.values(valor).forEach(visitar)
+  }
+  visitar([demo.obras, demo.artista, demo.configuracion])
+
+  const calculados = new Map()
+  await Promise.all(
+    imagenes.map(async (imagenDemo) => {
+      const datos = datosDemo(imagenDemo)
+      const ruta = datos && join(process.cwd(), 'public', 'demo', datos.archivo)
+      if (!ruta || !existsSync(ruta)) return
+      if (!calculados.has(ruta)) {
+        calculados.set(
+          ruta,
+          Promise.all([
+            sharp(ruta).resize({width: 20}).webp({quality: 50}).toBuffer(),
+            sharp(ruta).stats(),
+          ]).then(([miniatura, stats]) => ({
+            lqip: `data:image/webp;base64,${miniatura.toString('base64')}`,
+            dominante: colorHex(stats.dominant),
+          })),
+        )
+      }
+      try {
+        const {lqip, dominante} = await calculados.get(ruta)
+        imagenDemo.asset.metadata = {
+          ...imagenDemo.asset.metadata,
+          lqip,
+          palette: {dominant: {background: dominante}},
+        }
+      } catch {
+        // Sin vista borrosa: la imagen se muestra sobre el color de superficie.
+      }
+    }),
+  )
+}
+
+if (enDemo) await completarImagenesDemo()
+
+// Videos de demo: título, portada, duración y descripción salen de Vimeo (oEmbed), nunca a mano.
+let videosDemo = null
+function proyectosDemo() {
+  videosDemo ??= Promise.all(
+    (demo.videosVimeo || []).map(async (link, indice) => {
+      try {
+        const respuesta = await fetch(
+          `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(link)}&width=1920`,
+        )
+        if (!respuesta.ok) return null
+        const datos = await respuesta.json()
+        if (!datos.title) return null
+        return {
+          _id: `vimeo-${datos.video_id || indice}`,
+          _type: 'proyectoAudiovisual',
+          titulo: datos.title,
+          anio: null,
+          duracion: datos.duration ? String(Math.max(1, Math.round(datos.duration / 60))) : '',
+          descripcionCorta: String(datos.description || '').trim(),
+          linkVimeo: link,
+          categoria: '',
+          destacado: indice === 0,
+          mostrarEnInicio: indice < 2,
+          miniaturaUrl: datos.thumbnail_url || '',
+        }
+      } catch {
+        return null
+      }
+    }),
+  ).then((lista) => lista.filter(Boolean))
+  return videosDemo
+}
 
 async function miniaturaVimeo(link, ancho = 960) {
   try {
@@ -133,31 +239,24 @@ async function conMiniatura(proyectos) {
     (proyectos || []).map(async (proyecto) => {
       const miniaturaUrl = proyecto.miniatura?.asset
         ? urlFor(proyecto.miniatura).width(960).height(540).url()
-        : await miniaturaVimeo(proyecto.linkVimeo)
+        : proyecto.miniaturaUrl || (await miniaturaVimeo(proyecto.linkVimeo, 1920))
       return {...proyecto, miniaturaUrl}
     }),
   )
 }
 
-function obrasDentroDelPlan() {
-  return demo.obras.slice(0, limiteDe(demo.configuracion.limiteObras))
-}
-
 export async function fetchInicio() {
   if (enDemo) {
-    const permitidas = new Set(obrasDentroDelPlan().map((obra) => obra.slug))
     const destacadas = demo.obras
-      .filter((obra) => obra.destacadaEnInicio && permitidas.has(obra.slug))
+      .filter((obra) => obra.destacadaEnInicio)
       .slice(0, 4)
       .map((obra) => ({
         titulo: obra.titulo,
         slug: obra.slug,
+        anio: obra.anio,
         imagenPrincipal: obra.imagenPrincipal,
       }))
-    const proyectos = demo.proyectos
-      .filter((proyecto) => proyecto.mostrarEnInicio)
-      .sort((a, b) => (b.anio || 0) - (a.anio || 0))
-      .slice(0, 2)
+    const proyectos = (await proyectosDemo()).filter((proyecto) => proyecto.mostrarEnInicio).slice(0, 2)
     return {
       artista: demo.artista,
       configuracion: demo.configuracion,
@@ -165,8 +264,6 @@ export async function fetchInicio() {
       audiovisual: await conMiniatura(proyectos),
     }
   }
-
-  const limitePlan = await getLimiteObras()
 
   const [artista, configuracion, destacadas, proyectos] = await Promise.all([
     client.fetch(`*[_id == "artista"][0]{
@@ -177,6 +274,10 @@ export async function fetchInicio() {
         linea1,
         linea2,
         linea3,
+        bajada,
+        imagen ${imagen}
+      },
+      heroAudiovisual {
         bajada,
         imagen ${imagen}
       },
@@ -201,12 +302,12 @@ export async function fetchInicio() {
       }
     }`),
     client.fetch(
-      `*[_type == "obra" && destacadaEnInicio == true && !(_id in path("drafts.**")) && _id in *[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) [0...$limitePlan]._id] | order(coalesce(ordenGaleria, 999999) asc) [0...4] {
+      `*[_type == "obra" && destacadaEnInicio == true && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) [0...4] {
         titulo,
         "slug": slug.current,
+        anio,
         imagenPrincipal ${imagen}
       }`,
-      {limitePlan},
     ),
     client.fetch(`*[_type == "proyectoAudiovisual" && mostrarEnInicio == true && !(_id in path("drafts.**"))] | order(anio desc) [0...2] {
       titulo,
@@ -240,6 +341,12 @@ function proporcionObra(imagen, ref) {
     alto = Math.max(1, Math.round(alto * (1 - (recorte.top || 0) - (recorte.bottom || 0))))
   }
   return { ancho, alto }
+}
+
+// Medidas reales de una imagen (respetando el recorte de Sanity), para mostrarla sin deformar.
+export function medidasImagen(imagen) {
+  const ref = imagen?.asset?._id || imagen?.asset?._ref || ''
+  return proporcionObra(imagen, ref)
 }
 
 function prepararObraGaleria(obra) {
@@ -290,13 +397,12 @@ export async function fetchGaleria() {
       artista,
       configuracion,
       bajada: bajadaSanity ? bajadaSanity.trim() : '',
-      obras: obrasDentroDelPlan()
+      obras: demo.obras
         .filter((obra) => obra?.slug)
         .map(prepararObraGaleria),
     }
   }
 
-  const limitePlan = await getLimiteObras()
   const [artista, configuracion, obras] = await Promise.all([
     client.fetch(`*[_id == "artista"][0]{
       nombre,
@@ -313,7 +419,7 @@ export async function fetchGaleria() {
       bajadaGaleria
     }`),
     client.fetch(
-      `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) [0...$limitePlan] {
+      `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) {
         titulo,
         "slug": slug.current,
         anio,
@@ -328,11 +434,10 @@ export async function fetchGaleria() {
           hotspot,
           asset->{
             _id,
-            metadata { dimensions { width, height } }
+            ${metadatosImagen}
           }
         }
       }`,
-      { limitePlan },
     ),
   ])
 
@@ -424,15 +529,7 @@ export function elegirRelacionadas(obras, actual) {
   }))
 }
 
-const imagenConMedidas = `{
-  alt,
-  crop,
-  hotspot,
-  asset->{
-    _id,
-    metadata { dimensions { width, height } }
-  }
-}`
+const imagenConMedidas = imagen
 
 function paginasDe(vistas, artista, configuracion) {
   const envioColeccion =
@@ -483,9 +580,8 @@ function vistasDe(obras) {
 }
 
 export async function fetchPaginasObra() {
-  if (enDemo) return paginasDe(vistasDe(obrasDentroDelPlan()), demo.artista, demo.configuracion)
+  if (enDemo) return paginasDe(vistasDe(demo.obras), demo.artista, demo.configuracion)
 
-  const limitePlan = await getLimiteObras()
   const [artista, configuracion, obras] = await Promise.all([
     client.fetch(`*[_id == "artista"][0]{ nombre, subtitulo }`),
     client.fetch(`*[_id == "configuracion"][0]{
@@ -498,7 +594,7 @@ export async function fetchPaginasObra() {
       envioColeccion
     }`),
     client.fetch(
-      `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) [0...$limitePlan] {
+      `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) {
         titulo,
         "slug": slug.current,
         anio,
@@ -511,7 +607,6 @@ export async function fetchPaginasObra() {
         imagenPrincipal ${imagenConMedidas},
         imagenesAdicionales[] ${imagenConMedidas}
       }`,
-      { limitePlan },
     ),
   ])
 
@@ -553,7 +648,7 @@ function miniaturaProyecto(imagen) {
 async function prepararProyecto(proyecto) {
   const { id, hash } = datosVimeo(proyecto.linkVimeo)
   const miniatura = proyecto.miniatura?.asset ? miniaturaProyecto(proyecto.miniatura) : null
-  const miniaturaUrl = miniatura ? '' : await miniaturaVimeo(proyecto.linkVimeo, 1280)
+  const miniaturaUrl = miniatura ? '' : proyecto.miniaturaUrl || (await miniaturaVimeo(proyecto.linkVimeo, 1280))
   return {
     id: proyecto._id,
     titulo: proyecto.titulo || '',
@@ -569,15 +664,9 @@ async function prepararProyecto(proyecto) {
   }
 }
 
-function ordenarProyectos(lista) {
-  return [...lista].sort(
-    (a, b) => (b.anio || 0) - (a.anio || 0) || String(a.titulo).localeCompare(String(b.titulo), 'es'),
-  )
-}
-
 export async function fetchAudiovisual() {
   if (enDemo) {
-    const proyectos = await Promise.all(ordenarProyectos(demo.proyectos).map((proyecto) => prepararProyecto(proyecto)))
+    const proyectos = await Promise.all((await proyectosDemo()).map((proyecto) => prepararProyecto(proyecto)))
     return {
       artista: {
         nombre: demo.artista.nombre || '',
