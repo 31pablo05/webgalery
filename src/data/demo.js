@@ -127,19 +127,22 @@ export const obras = [
 const principal = obras.find((item) => item.slug === 'rukacorazon')
 
 const RESUMEN =
-	'Celia Gómez Perea —Celi Gómez en redes— es artista visual. Su práctica se mueve entre el dibujo, la imagen y la experimentación, con obras bidimensionales, experimentación gráfica, intervenciones y producción audiovisual.'
+	'Celia Gómez Perea —Celi Gómez en redes— es artista visual. Su lenguaje principal es el dibujo en blanco y negro, con tinta y línea, que llega a la escala de la instalación. También trabaja la experimentación gráfica, la obra bidimensional y la producción audiovisual, y desarrolla su obra por proyectos.'
 
 export const artista = {
 	_id: 'artista',
 	_type: 'artista',
 	nombre: 'Celia Gómez Perea',
 	subtitulo: 'Artista visual',
+	// Frase propia de la artista: se usa tal cual.
+	frase: 'Territorio arte',
 	bajadaGaleria: 'Dibujo, obra bidimensional y experimentación gráfica.',
 	heroInicio: {
 		linea1: '',
 		linea2: '',
 		linea3: '',
-		bajada: 'Dibujo, obra bidimensional, experimentación gráfica, intervenciones y producción audiovisual.',
+		bajada: 'Dibujo en tinta y línea, del papel a la instalación.',
+		// Respaldo: cuando llegue 08-bucear-instalacion.jpg, este lugar pasa a la foto de la instalación BUCEAR.
 		imagen: foto(
 			'celia-proceso.webp',
 			1600,

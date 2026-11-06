@@ -7,104 +7,96 @@ const retrato = artista?.retrato
 const bio = artista?.bioCorta || ''
 const tieneRetrato = Boolean(retrato?.asset)
 
-// Sin proyectos cargados, la banda muestra la imagen de la página Audiovisual como registro de
-// proceso: no se presenta como portada de ningún video.
+// Con videos, la banda muestra la portada real del más reciente. Sin videos, la imagen de la página
+// Audiovisual como registro de proceso: no se presenta como portada de ningún video.
+const [video] = proyectos
 const fondo = artista?.heroAudiovisual?.imagen
 const tieneFondo = Boolean(fondo?.asset)
 const bajadaAudiovisual = artista?.heroAudiovisual?.bajada?.trim() || ''
-const [principal, segundo] = proyectos
+
 // Ninguna imagen se muestra más ancha que su resolución original.
 const anchoFondo = tieneFondo ? medidasImagen(fondo).ancho : 0
 const anchoRetrato = tieneRetrato ? medidasImagen(retrato).ancho : 0
-const hayAudiovisual = Boolean(principal) || tieneFondo || Boolean(vimeo)
+const hayAudiovisual = Boolean(video) || tieneFondo || Boolean(vimeo)
 
-function ficha(proyecto) {
-	const partes = ['Video']
-	if (proyecto.anio) partes.push(String(proyecto.anio))
-	if (proyecto.duracion) partes.push(`${proyecto.duracion} min`)
-	return partes.join(' · ')
+function textoDuracion(duracion) {
+	const valor = String(duracion || '').trim()
+	if (!valor) return ''
+	return valor.includes(':') ? valor : `${valor} min`
 }
+
+const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Boolean).join(' · ') : ''
 ---
 
 {
 	hayAudiovisual && (
 		<section class="cine" aria-labelledby="cine-titulo">
-			<div class="cine__cabecera fade-in">
-				<p class="label cine__label">Imagen en movimiento</p>
-				<h2 id="cine-titulo" class="titulo-seccion">
-					Audiovisual
-				</h2>
-				{bajadaAudiovisual && <p class="cine__texto">{bajadaAudiovisual}</p>}
+			<div class="cine__texto fade-in">
+				<div class="cine__encabezado">
+					<p class="label cine__label">Imagen en movimiento</p>
+					<h2 id="cine-titulo" class="titulo-seccion">
+						Audiovisual
+					</h2>
+					{bajadaAudiovisual && <p class="cine__bajada">{bajadaAudiovisual}</p>}
+				</div>
+				<div class="cine__enlaces">
+					<a class="enlace" href="/audiovisual">
+						Ver sección audiovisual <span class="arrow" aria-hidden="true">→</span>
+					</a>
+					{vimeo && (
+						<a class="enlace" href={vimeo} target="_blank" rel="noopener noreferrer">
+							Canal en Vimeo <span aria-hidden="true">↗</span>
+							<span class="sr-only">(se abre en otra pestaña)</span>
+						</a>
+					)}
+				</div>
 			</div>
 
-			{principal ? (
-				<div class:list={['cine__proyectos', segundo && 'cine__proyectos--dos']}>
-					{[principal, segundo].filter(Boolean).map((proyecto, indice) => (
-						<a class:list={['cine__proyecto fade-in', indice === 0 && 'cine__proyecto--principal']} href="/audiovisual">
-							<div class="cine__cuadro">
-								{proyecto.miniatura?.asset ? (
-									<Imagen
-										source={proyecto.miniatura}
-										alt={proyecto.miniatura?.alt || proyecto.titulo}
-										width={indice === 0 ? 1600 : 960}
-										height={indice === 0 ? 686 : 540}
-										sizes={indice === 0 ? '100vw' : '(min-width: 64rem) 34vw, 100vw'}
-									/>
-								) : (
-									proyecto.miniaturaUrl && (
-										<img
-											src={proyecto.miniaturaUrl}
-											alt={proyecto.titulo || 'Video'}
-											width="960"
-											height="540"
-											loading="lazy"
-											decoding="async"
-											class="block h-full w-full object-cover"
-										/>
-									)
-								)}
-								<span class="cine__play" aria-hidden="true">
-									<svg viewBox="0 0 48 48">
-										<circle cx="24" cy="24" r="21" />
-										<path d="M20 16.5 32 24 20 31.5Z" />
-									</svg>
-								</span>
-							</div>
-							<p class="cine__pie">
-								<span class="cine__titulo titulo-obra">{proyecto.titulo}</span>
-								<span class="cine__meta">{ficha(proyecto)}</span>
-							</p>
-						</a>
-					))}
-				</div>
+			{video ? (
+				<a class="cine__obra cine__obra--video fade-in" href="/audiovisual">
+					<div class="cine__cuadro">
+						{video.miniatura?.asset ? (
+							<Imagen
+								source={video.miniatura}
+								alt={video.miniatura?.alt || video.titulo}
+								width={1280}
+								height={720}
+								sizes="(min-width: 64rem) 58vw, 100vw"
+							/>
+						) : (
+							video.miniaturaUrl && (
+								<img src={video.miniaturaUrl} alt="" width="1280" height="720" loading="lazy" decoding="async" />
+							)
+						)}
+						<span class="cine__play" aria-hidden="true">
+							<svg viewBox="0 0 48 48">
+								<circle cx="24" cy="24" r="21" />
+								<path d="M20 16.5 32 24 20 31.5Z" />
+							</svg>
+						</span>
+					</div>
+					<p class="cine__pie">
+						<span class="cine__titulo titulo-obra">{video.titulo}</span>
+						{fichaVideo && <span class="cine__meta">{fichaVideo}</span>}
+						<span class="sr-only">— reproducir en la sección audiovisual</span>
+					</p>
+				</a>
 			) : (
 				tieneFondo && (
-					<figure class="cine__registro fade-in" style={`--ancho-natural: ${anchoFondo}px`}>
+					<figure class="cine__obra fade-in" style={`--ancho-natural: ${anchoFondo}px`}>
 						<div class="cine__cuadro">
 							<Imagen
 								source={fondo}
 								alt={fondo.alt || ''}
 								width={1600}
 								height={686}
-								sizes="100vw"
+								sizes="(min-width: 64rem) 58vw, 100vw"
 							/>
 						</div>
-						{fondo.alt && <figcaption class="cine__meta">{fondo.alt}</figcaption>}
+						{fondo.alt && <figcaption class="cine__pie cine__meta">{fondo.alt}</figcaption>}
 					</figure>
 				)
 			)}
-
-			<div class="cine__enlaces fade-in">
-				<a class="enlace" href="/audiovisual">
-					Ver sección audiovisual <span class="arrow" aria-hidden="true">→</span>
-				</a>
-				{vimeo && (
-					<a class="enlace" href={vimeo} target="_blank" rel="noopener noreferrer">
-						Canal en Vimeo <span aria-hidden="true">↗</span>
-						<span class="sr-only">(se abre en otra pestaña)</span>
-					</a>
-				)}
-			</div>
 		</section>
 	)
 }
@@ -136,46 +128,50 @@ function ficha(proyecto) {
 }
 
 <style>
-	/* Banda audiovisual: fondo carbón, encuadre panorámico. */
+	/* Banda audiovisual: fondo carbón, texto a un lado y un único cuadro. */
 	.cine {
-		margin-top: var(--seccion);
-		padding: clamp(4rem, 9vw, 8rem) var(--gutter);
+		display: grid;
+		gap: 2.25rem;
+		margin-top: clamp(2.5rem, 5vw, 4.5rem);
+		padding: clamp(3.5rem, 8vw, 4.5rem) var(--gutter);
 		background-color: var(--color-dark);
 		color: var(--color-bg);
 	}
 
-	.cine__cabecera {
+	.cine__texto,
+	.cine__encabezado {
 		display: grid;
 		gap: 0.9rem;
 		justify-items: start;
+		align-content: start;
+	}
+
+	.cine__texto {
+		gap: 1.75rem;
 	}
 
 	.cine__label,
 	.cine__meta {
-		color: rgba(248, 247, 245, 0.62);
+		color: rgba(248, 247, 245, 0.68);
 	}
 
-	.cine__texto {
-		max-width: 28rem;
-		margin-top: 0.4rem;
-		color: rgba(248, 247, 245, 0.82);
-		font-size: 1rem;
+	.cine__bajada {
+		max-width: 26rem;
+		color: rgba(248, 247, 245, 0.85);
 		line-height: 1.6;
 	}
 
-	.cine__proyectos,
-	.cine__registro {
-		display: grid;
-		gap: 2.5rem;
-		margin: 2.75rem calc(-1 * var(--gutter)) 0;
+	.cine__enlaces {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem 2rem;
 	}
 
-	.cine__registro {
-		max-width: var(--ancho-natural, none);
-	}
-
-	.cine__proyecto {
+	.cine__obra {
 		display: block;
+		min-width: 0;
+		max-width: var(--ancho-natural, none);
+		margin: 0 calc(-1 * var(--gutter));
 		color: inherit;
 		text-decoration: none;
 	}
@@ -187,7 +183,11 @@ function ficha(proyecto) {
 		background-color: #222;
 	}
 
+	.cine__cuadro > img,
 	.cine__cuadro :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 		transition:
 			opacity 0.8s var(--ease),
 			transform 1.2s var(--ease);
@@ -203,17 +203,17 @@ function ficha(proyecto) {
 	}
 
 	.cine__play svg {
-		width: 3.25rem;
-		height: 3.25rem;
+		width: 3.5rem;
+		height: 3.5rem;
 		fill: none;
 		stroke: currentColor;
 		stroke-width: 1.25;
 	}
 
-	.cine__pie,
-	.cine__registro figcaption {
+	.cine__pie {
 		display: flex;
 		flex-wrap: wrap;
+		align-items: baseline;
 		justify-content: space-between;
 		gap: 0.35rem 1.5rem;
 		margin-top: 0.9rem;
@@ -223,95 +223,71 @@ function ficha(proyecto) {
 	}
 
 	.cine__titulo {
-		font-size: 1.25rem;
+		font-size: 1.375rem;
 		line-height: 1.2;
 	}
 
-	.cine__enlaces {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1.25rem 2.25rem;
-		margin-top: 2.5rem;
-	}
-
-	.cine__proyecto:focus-visible {
+	.cine__obra--video:focus-visible {
 		outline: 1px solid #fff;
 		outline-offset: 4px;
 	}
 
 	@media (hover: hover) and (pointer: fine) {
-		.cine__proyecto:hover .cine__cuadro :global(img) {
+		.cine__obra--video:hover .cine__cuadro :global(img),
+		.cine__obra--video:hover .cine__cuadro > img {
 			opacity: 0.8;
 			transform: scale(1.015);
 		}
 	}
 
 	@media (min-width: 48rem) {
-		.cine__proyectos,
-		.cine__registro {
+		.cine__obra {
 			margin-inline: 0;
 		}
 
-		.cine__pie,
-		.cine__registro figcaption {
+		.cine__pie {
 			padding-inline: 0;
 		}
 
 		.cine__cuadro {
 			aspect-ratio: 21 / 9;
 		}
+
+		.cine__obra--video .cine__cuadro {
+			aspect-ratio: 16 / 9;
+		}
 	}
 
+	/* Escritorio: dos columnas; la banda nunca supera el 70 % del alto de la pantalla. */
 	@media (min-width: 64rem) {
-		.cine__cabecera {
+		.cine {
+			--relleno: clamp(2.5rem, 6svh, 4rem);
 			grid-template-columns: repeat(12, minmax(0, 1fr));
 			column-gap: 1.5rem;
-			align-items: end;
-		}
-
-		.cine__label {
-			grid-column: 1 / 4;
-			grid-row: 1;
-			padding-bottom: 0.6rem;
-		}
-
-		.cine__cabecera .titulo-seccion {
-			grid-column: 4 / 9;
-			grid-row: 1;
+			align-items: stretch;
+			padding-block: var(--relleno);
 		}
 
 		.cine__texto {
-			grid-column: 9 / -1;
-			grid-row: 1;
-			margin: 0;
+			grid-column: 1 / 5;
+			align-content: space-between;
 		}
 
-		.cine__proyectos,
-		.cine__registro {
-			margin-top: clamp(3.5rem, 6vw, 5.5rem);
+		.cine__obra {
+			grid-column: 5 / -1;
+			justify-self: end;
+			width: 100%;
 		}
 
-		/* Con dos videos: el segundo, más chico y desplazado a la derecha. */
-		.cine__proyectos--dos {
-			grid-template-columns: repeat(12, minmax(0, 1fr));
-			column-gap: 1.5rem;
-			row-gap: 3rem;
-		}
-
-		.cine__proyectos--dos .cine__proyecto--principal {
-			grid-column: 1 / -1;
-		}
-
-		.cine__proyectos--dos .cine__proyecto:not(.cine__proyecto--principal) {
-			grid-column: 8 / -1;
-		}
-
-		.cine__proyectos--dos .cine__proyecto:not(.cine__proyecto--principal) .cine__cuadro {
-			aspect-ratio: 16 / 9;
+		.cine__cuadro,
+		.cine__obra--video .cine__cuadro {
+			aspect-ratio: auto;
+			height: min(calc(70svh - 2 * var(--relleno) - 2.75rem), 34rem);
 		}
 
 		.cine__enlaces {
-			justify-content: flex-end;
+			flex-direction: column;
+			align-items: flex-start;
 		}
 	}
 
@@ -396,7 +372,8 @@ function ficha(proyecto) {
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.cine__cuadro :global(img) {
+		.cine__cuadro :global(img),
+		.cine__cuadro > img {
 			transition: none;
 		}
 	}

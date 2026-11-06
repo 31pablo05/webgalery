@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro'
 import Hero from '../components/home/Hero.astro'
 import ObrasDestacadas from '../components/home/ObrasDestacadas.astro'
 import Presentacion from '../components/home/Presentacion.astro'
+import Trazo from '../components/layout/Trazo.astro'
 import { fetchInicio, urlFor } from '../lib/sanity.js'
 
 const { artista, configuracion, destacadas, audiovisual } = await fetchInicio()
@@ -26,11 +27,13 @@ const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : unde
 	vimeo={configuracion?.vimeo}
 	youtube={configuracion?.youtube}
 >
-	<Hero hero={hero} nombre={nombre} subtitulo={artista?.subtitulo} />
+	<Hero hero={hero} nombre={nombre} subtitulo={artista?.subtitulo} frase={artista?.frase} />
+	<Trazo arriba="clamp(3rem, 7vw, 6rem)" />
 	<ObrasDestacadas
 		destacadas={destacadas}
 		obra={configuracion?.obraPrincipal}
 		whatsapp={configuracion?.whatsapp}
 	/>
+	<Trazo arriba="var(--seccion)" />
 	<Presentacion proyectos={audiovisual} artista={artista} vimeo={configuracion?.vimeo} />
 </Layout>

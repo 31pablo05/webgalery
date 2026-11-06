@@ -55,6 +55,14 @@ export const artista = defineType({
       initialValue: 'Artista visual',
     }),
     defineField({
+      name: 'frase',
+      title: 'Frase destacada',
+      type: 'string',
+      group: 'datos',
+      description:
+        'Una frase propia de la artista. Se muestra debajo del nombre en el inicio y en Sobre la artista. Ejemplo: Territorio arte.',
+    }),
+    defineField({
       name: 'heroInicio',
       title: 'Hero de inicio',
       type: 'object',

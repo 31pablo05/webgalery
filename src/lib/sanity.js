@@ -189,6 +189,12 @@ async function completarImagenesDemo() {
 if (enDemo) await completarImagenesDemo()
 
 // Videos de demo: título, portada, duración y descripción salen de Vimeo (oEmbed), nunca a mano.
+function duracionVimeo(segundos) {
+  const total = Math.round(Number(segundos) || 0)
+  if (!total) return ''
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
+
 let videosDemo = null
 function proyectosDemo() {
   videosDemo ??= Promise.all(
@@ -205,19 +211,21 @@ function proyectosDemo() {
           _type: 'proyectoAudiovisual',
           titulo: datos.title,
           anio: null,
-          duracion: datos.duration ? String(Math.max(1, Math.round(datos.duration / 60))) : '',
+          duracion: duracionVimeo(datos.duration),
+          publicado: String(datos.upload_date || ''),
           descripcionCorta: String(datos.description || '').trim(),
           linkVimeo: link,
           categoria: '',
-          destacado: indice === 0,
-          mostrarEnInicio: indice < 2,
           miniaturaUrl: datos.thumbnail_url || '',
         }
       } catch {
         return null
       }
     }),
-  ).then((lista) => lista.filter(Boolean))
+  )
+    // El más reciente primero (según la fecha de publicación que informa Vimeo).
+    .then((lista) => lista.filter(Boolean).sort((a, b) => b.publicado.localeCompare(a.publicado)))
+    .then((lista) => lista.map((video, indice) => ({...video, destacado: indice === 0, mostrarEnInicio: indice === 0})))
   return videosDemo
 }
 
@@ -256,7 +264,7 @@ export async function fetchInicio() {
         anio: obra.anio,
         imagenPrincipal: obra.imagenPrincipal,
       }))
-    const proyectos = (await proyectosDemo()).filter((proyecto) => proyecto.mostrarEnInicio).slice(0, 2)
+    const proyectos = (await proyectosDemo()).filter((proyecto) => proyecto.mostrarEnInicio).slice(0, 1)
     return {
       artista: demo.artista,
       configuracion: demo.configuracion,
@@ -269,6 +277,7 @@ export async function fetchInicio() {
     client.fetch(`*[_id == "artista"][0]{
       nombre,
       subtitulo,
+      frase,
       bioCorta,
       heroInicio {
         linea1,
@@ -309,7 +318,7 @@ export async function fetchInicio() {
         imagenPrincipal ${imagen}
       }`,
     ),
-    client.fetch(`*[_type == "proyectoAudiovisual" && mostrarEnInicio == true && !(_id in path("drafts.**"))] | order(anio desc) [0...2] {
+    client.fetch(`*[_type == "proyectoAudiovisual" && mostrarEnInicio == true && !(_id in path("drafts.**"))] | order(anio desc) [0...1] {
       titulo,
       anio,
       duracion,

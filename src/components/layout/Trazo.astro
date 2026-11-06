@@ -1,0 +1,34 @@
+---
+import { TRAZO_SEPARADOR } from '../../lib/trazos.js'
+
+// Separador entre secciones: el trazo de tinta, estático y muy tenue. Solo en Inicio y Sobre la artista.
+// arriba / abajo: espacio antes y después del trazo.
+const { class: clase = '', arriba = '0', abajo = '0' } = Astro.props
+---
+
+<div class:list={['separador', clase]} style={`--arriba: ${arriba}; --abajo: ${abajo}`} aria-hidden="true">
+	<svg viewBox={TRAZO_SEPARADOR.viewBox} preserveAspectRatio="none" focusable="false">
+		<path d={TRAZO_SEPARADOR.d} />
+	</svg>
+</div>
+
+<style>
+	.separador {
+		padding: var(--arriba) var(--gutter) var(--abajo);
+	}
+
+	.separador svg {
+		display: block;
+		width: min(100%, 34rem);
+		height: 1.25rem;
+		overflow: visible;
+	}
+
+	.separador path {
+		fill: none;
+		stroke: var(--color-ink);
+		stroke-width: 1.1;
+		stroke-linecap: round;
+		opacity: 0.28;
+	}
+</style>

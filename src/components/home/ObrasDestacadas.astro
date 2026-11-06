@@ -128,7 +128,7 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 
 <style>
 	.seleccion {
-		padding: var(--seccion) var(--gutter) 0;
+		padding: clamp(2.5rem, 5vw, 4.5rem) var(--gutter) 0;
 	}
 
 	.seleccion__cabecera {
@@ -278,19 +278,22 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 			grid-template-columns: repeat(12, minmax(0, 1fr));
 			column-gap: 1.5rem;
 			align-items: end;
+			row-gap: 0.9rem;
 		}
 
 		.seleccion__cabecera .label {
-			grid-column: 1 / 4;
-			padding-bottom: 0.6rem;
+			grid-column: 1 / 9;
+			grid-row: 1;
 		}
 
 		.seleccion__cabecera .titulo-seccion {
-			grid-column: 4 / 10;
+			grid-column: 1 / 9;
+			grid-row: 2;
 		}
 
 		.seleccion__todas {
-			grid-column: 10 / -1;
+			grid-column: 9 / -1;
+			grid-row: 2;
 			justify-self: end;
 			margin: 0 0 0.5rem;
 		}
@@ -310,11 +313,11 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 		.seleccion__columna {
 			display: flex;
 			flex-direction: column;
-			gap: clamp(5rem, 9vw, 9rem);
+			gap: clamp(4rem, 6.5vw, 7rem);
 		}
 
 		.seleccion__columna--b {
-			padding-top: clamp(6rem, 12vw, 13rem);
+			padding-top: clamp(4rem, 8vw, 9rem);
 		}
 
 		.pieza,
