@@ -30,7 +30,7 @@ const indexar = ['true', '1', 'si', 'sí'].includes(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f8f7f5" />
+    <meta name="theme-color" content="#0f0f0e" />
     <title>{title}</title>
     <meta name="description" content={meta} />
     {!indexar && <meta name="robots" content="noindex, nofollow" />}
@@ -55,7 +55,7 @@ const indexar = ['true', '1', 'si', 'sí'].includes(
     </script>
   </head>
   <body>
-    <Header nombre={nombre} subtitulo={subtitulo} />
+    <Header nombre={nombre} instagram={instagram} vimeo={vimeo} />
     <main>
       <slot />
     </main>

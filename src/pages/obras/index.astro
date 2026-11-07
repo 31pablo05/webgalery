@@ -25,7 +25,7 @@ const titulo = artista?.nombre ? `Obras — ${artista.nombre}` : 'Obras'
 	youtube={configuracion?.youtube}
 >
 	<Encabezado bajada={bajadaVisible} />
-	<section class="fade-in px-6 pt-10 pb-20 lg:px-10 lg:pt-14 lg:pb-28">
+	<section class="contenedor fade-in pt-12 pb-24 lg:pt-16 lg:pb-40">
 		<Galeria client:visible obras={obras} />
 	</section>
 </Layout>

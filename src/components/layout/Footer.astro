@@ -1,4 +1,6 @@
 ---
+import Trazo from './Trazo.astro';
+
 const {
 	nombre = '',
 	subtitulo = '',
@@ -26,7 +28,8 @@ const anio = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
-	<div class="site-footer__inner">
+	<Trazo />
+	<div class="site-footer__inner contenedor grilla">
 		<div class="site-footer__marca">
 			{nombre && (
 				<a class="site-footer__nombre" href="/">
@@ -36,108 +39,71 @@ const anio = new Date().getFullYear();
 			{subtitulo && <p class="site-footer__rol">{subtitulo}</p>}
 		</div>
 
-		<div class="site-footer__columnas">
-			<nav class="site-footer__col" aria-label="Secciones del sitio">
-				<p class="label">Secciones</p>
-				<ul>
-					{secciones.map((item) => (
-						<li>
-							<a class="site-footer__link" href={item.href}>
-								{item.label}
-							</a>
-						</li>
+		<nav class="site-footer__fila" aria-label="Secciones del sitio">
+			{secciones.map((item) => (
+				<a class="site-footer__link" href={item.href}>
+					{item.label}
+				</a>
+			))}
+		</nav>
+
+		{
+			(redes.length > 0 || email || ciudad) && (
+				<div class="site-footer__fila site-footer__fila--redes">
+					{redes.map((item) => (
+						<a class="site-footer__link" href={item.href} target="_blank" rel="noopener noreferrer">
+							{item.label}
+							<span class="site-footer__externo" aria-hidden="true">
+								↗
+							</span>
+							<span class="sr-only"> (se abre en otra pestaña)</span>
+						</a>
 					))}
-				</ul>
-			</nav>
+					{email && (
+						<a class="site-footer__link" href={`mailto:${email}`}>
+							{email}
+						</a>
+					)}
+					{ciudad && <span class="site-footer__dato">{ciudad}</span>}
+				</div>
+			)
+		}
 
-			{
-				redes.length > 0 && (
-					<div class="site-footer__col">
-						<p class="label">Redes</p>
-						<ul>
-							{redes.map((item) => (
-								<li>
-									<a class="site-footer__link" href={item.href} target="_blank" rel="noopener noreferrer">
-										{item.label}
-										<span class="site-footer__externo" aria-hidden="true">
-											↗
-										</span>
-										<span class="sr-only"> (se abre en otra pestaña)</span>
-									</a>
-								</li>
-							))}
-						</ul>
-					</div>
-				)
-			}
-
-			{
-				(email || ciudad) && (
-					<div class="site-footer__col">
-						<p class="label">Contacto</p>
-						<ul>
-							{email && (
-								<li>
-									<a class="site-footer__link" href={`mailto:${email}`}>
-										{email}
-									</a>
-								</li>
-							)}
-							{ciudad && <li class="site-footer__dato">{ciudad}</li>}
-						</ul>
-					</div>
-				)
-			}
-		</div>
-	</div>
-
-	<div class="site-footer__base">
-		<p>© {anio}{nombre && ` ${nombre}`}</p>
+		<p class="site-footer__copia">© {anio}{nombre && ` ${nombre}`}</p>
 	</div>
 </footer>
 
 <style>
 	.site-footer {
-		padding: 4rem var(--gutter) 2rem;
-		border-top: 1px solid var(--color-line);
-		background-color: var(--color-bg);
+		padding-bottom: 2.5rem;
 		color: var(--color-ink);
 	}
 
 	.site-footer__inner {
-		display: grid;
-		gap: 3rem;
+		row-gap: 1.75rem;
+		align-items: baseline;
+	}
+
+	.site-footer__marca,
+	.site-footer__fila,
+	.site-footer__copia {
+		grid-column: 1 / -1;
 	}
 
 	.site-footer__nombre {
-		display: inline-block;
 		color: inherit;
 		font-family: var(--font-display);
-		font-size: clamp(2.25rem, 6vw, 4.5rem);
-		font-weight: 400;
-		line-height: 0.95;
-		letter-spacing: -0.035em;
+		font-size: 1.375rem;
+		font-weight: 500;
+		line-height: 1.2;
+		letter-spacing: -0.015em;
 		text-decoration: none;
 	}
 
-	.site-footer__rol {
-		margin-top: 0.75rem;
-		color: var(--color-muted);
-		font-size: 0.9375rem;
-	}
-
-	.site-footer__columnas {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 2.25rem 1.5rem;
-	}
-
-	.site-footer__col ul {
-		display: grid;
-		gap: 0.55rem;
-		margin: 0.9rem 0 0;
-		padding: 0;
-		list-style: none;
+	.site-footer__fila {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem 1.75rem;
 	}
 
 	.site-footer__link,
@@ -145,7 +111,7 @@ const anio = new Date().getFullYear();
 		position: relative;
 		display: inline-flex;
 		align-items: baseline;
-		gap: 0.35rem;
+		gap: 0.3rem;
 		color: var(--color-ink);
 		font-size: 0.9375rem;
 		line-height: 1.4;
@@ -153,10 +119,22 @@ const anio = new Date().getFullYear();
 		overflow-wrap: anywhere;
 	}
 
+	.site-footer__rol {
+		margin-top: 0.25rem;
+		font-size: 0.9375rem;
+	}
+
+	.site-footer__rol,
+	.site-footer__dato,
+	.site-footer__externo,
+	.site-footer__copia {
+		color: var(--color-muted);
+	}
+
 	.site-footer__link::before {
 		content: '';
 		position: absolute;
-		inset: -0.45rem -0.3rem;
+		inset: -0.6rem -0.4rem;
 	}
 
 	.site-footer__link:hover {
@@ -165,20 +143,7 @@ const anio = new Date().getFullYear();
 		text-underline-offset: 0.25em;
 	}
 
-	.site-footer__externo {
-		color: var(--color-muted);
-		font-size: 0.8em;
-	}
-
-	.site-footer__base {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
-		gap: 0.5rem 2rem;
-		margin-top: 4rem;
-		padding-top: 1.25rem;
-		border-top: 1px solid var(--color-line);
-		color: var(--color-muted);
+	.site-footer__copia {
 		font-size: 0.8125rem;
 	}
 
@@ -188,22 +153,23 @@ const anio = new Date().getFullYear();
 		outline-offset: 4px;
 	}
 
+	/* Escritorio: todo en una fila, alineado a la grilla. */
 	@media (min-width: 64rem) {
-		.site-footer {
-			padding-top: 5.5rem;
+		.site-footer__marca {
+			grid-column: 1 / 4;
 		}
 
-		.site-footer__inner {
-			grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
-			align-items: start;
+		.site-footer__fila {
+			grid-column: 4 / 9;
 		}
 
-		.site-footer__columnas {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+		.site-footer__fila--redes {
+			grid-column: 9 / 13;
+			justify-content: flex-end;
 		}
 
-		.site-footer__base {
-			margin-top: 6rem;
+		.site-footer__copia {
+			margin-top: 1rem;
 		}
 	}
 </style>

@@ -6,17 +6,21 @@ import {medidasImagen, urlFor} from '../../lib/sanity.js'
 // Mientras carga, se ve la versión borrosa (LQIP) sobre el color dominante de la imagen.
 const {
 	source,
-	width,
+	width: anchoPedido,
 	height,
 	sizes,
 	priority = false,
 	class: clase = '',
+	// Nombre de View Transition: la misma obra se transforma con continuidad entre páginas.
+	transicion = '',
 } = Astro.props
 
 const alt = Astro.props.alt || source?.alt || ''
 const tieneArchivo = Boolean(source?.asset)
 const natural = !height
 const medidas = natural && tieneArchivo ? medidasImagen(source) : null
+// Nunca se pide ni se declara una versión más ancha que la imagen real.
+const width = medidas ? Math.min(anchoPedido, medidas.ancho) : anchoPedido
 const alto = natural ? (medidas ? Math.round((width * medidas.alto) / medidas.ancho) : width) : height
 
 function url(ancho, altoPedido) {
@@ -33,6 +37,13 @@ const srcset = srcChico && srcChico !== src ? `${srcChico} ${chico}w, ${src} ${w
 const metadata = source?.asset?.metadata
 const lqip = metadata?.lqip || ''
 const dominante = metadata?.palette?.dominant?.background || ''
+// Al recortar, el encuadre se centra en el punto de interés (hotspot) que se marca en Sanity.
+const hotspot = source?.hotspot
+const posicion =
+	!natural && hotspot && Number.isFinite(hotspot.x) && Number.isFinite(hotspot.y)
+		? `object-position: ${(hotspot.x * 100).toFixed(1)}% ${(hotspot.y * 100).toFixed(1)}%`
+		: ''
+const estiloImagen = [posicion, transicion && `view-transition-name: ${transicion}`].filter(Boolean).join('; ') || undefined
 const estilo = [dominante && `--dominante: ${dominante}`, lqip && `--lqip: url("${lqip}")`]
 	.filter(Boolean)
 	.join('; ')
@@ -52,6 +63,7 @@ const estilo = [dominante && `--dominante: ${dominante}`, lqip && `--lqip: url("
 				fetchpriority={priority ? 'high' : 'auto'}
 				decoding={priority ? 'sync' : 'async'}
 				data-nitida={priority ? undefined : ''}
+				style={estiloImagen}
 			/>
 		</span>
 	)

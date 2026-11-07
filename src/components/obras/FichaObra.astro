@@ -1,5 +1,5 @@
 ---
-const { obra, whatsapp = '', envio = '' } = Astro.props
+const { obra, whatsapp = '', envio = '', anterior = null, siguiente = null } = Astro.props
 
 const ESTADOS = {
 	disponible: { marca: '●', texto: 'Disponible', tenue: false },
@@ -9,20 +9,20 @@ const ESTADOS = {
 
 const CATEGORIAS = {
 	dibujo: 'Dibujo',
-	'obra-bidimensional': 'Obra bidimensional',
+	instalacion: 'Instalación',
 	'experimentacion-grafica': 'Experimentación gráfica',
-	intervencion: 'Intervención',
+	'obra-bidimensional': 'Obra bidimensional',
 }
 
 const estado = ESTADOS[obra?.estado] || null
 const vendida = obra?.estado === 'vendida'
 const categoria = CATEGORIAS[obra?.categoria] || ''
 
-const datos = [
+// La ficha técnica muestra solo los datos cargados; si no hay ninguno, una línea discreta.
+const ficha = [
 	obra?.anio != null && obra.anio !== '' ? ['Año', String(obra.anio)] : null,
 	obra?.tecnica ? ['Técnica', obra.tecnica] : null,
 	obra?.dimensiones ? ['Dimensiones', obra.dimensiones] : null,
-	estado ? ['Estado', estado] : null,
 ].filter(Boolean)
 
 function consultaWhatsapp(numero, titulo, anio) {
@@ -34,87 +34,83 @@ function consultaWhatsapp(numero, titulo, anio) {
 }
 
 const linkConsulta = consultaWhatsapp(whatsapp, obra?.titulo, obra?.anio)
+const textoConsulta = vendida ? 'Consultar por obras similares' : estado ? 'Consultar por esta obra' : 'Consultar sobre esta obra'
 ---
 
-<div class="detalle__info fade-in">
-	<p class="label">Detalle de obra</p>
-	<h1 class="detalle-titulo">{obra.titulo}</h1>
+<div class="detalle__info">
+	<div class="detalle__cabeza">
+		<p class="label">{obra.proyecto || 'Obra'}</p>
+		<h1 class="detalle-titulo titulo-obra">{obra.titulo}</h1>
+
+		{
+			ficha.length > 0 ? (
+				<dl class="detalle-datos">
+					{ficha.map(([etiqueta, valor]) => (
+						<div class="detalle-dato">
+							<dt>{etiqueta}</dt>
+							<dd>{valor}</dd>
+						</div>
+					))}
+				</dl>
+			) : (
+				<p class="detalle-pendiente">Ficha técnica en preparación</p>
+			)
+		}
+
+		{
+			estado && (
+				<p class:list={['detalle-estado', estado.tenue && 'is-tenue']}>
+					{estado.marca && <span aria-hidden="true">{estado.marca}</span>}
+					{estado.texto}
+				</p>
+			)
+		}
+
+		{obra.descripcionCorta && <p class="detalle-texto">{obra.descripcionCorta}</p>}
+
+		{
+			(categoria || envio) && (
+				<p class="detalle-extra">{[categoria, envio].filter(Boolean).join(' · ')}</p>
+			)
+		}
+
+		{
+			linkConsulta && (
+				<a
+					class:list={['btn', 'detalle-consulta', vendida ? 'btn-outline' : 'btn-solid']}
+					href={linkConsulta}
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					{textoConsulta}
+					<span class="arrow" aria-hidden="true">→</span>
+				</a>
+			)
+		}
+	</div>
 
 	{
-		datos.length > 0 && (
-			<dl class="detalle-datos">
-				{datos.map(([etiqueta, valor]) => (
-					<div class="detalle-dato">
-						<dt>{etiqueta}</dt>
-						<dd>
-							{etiqueta === 'Estado' ? (
-								<span class:list={['detalle-estado', valor.tenue && 'is-tenue']}>
-									{valor.marca && <span aria-hidden="true">{valor.marca}</span>}
-									{valor.texto}
-								</span>
-							) : (
-								valor
-							)}
-						</dd>
-					</div>
-				))}
-			</dl>
+		(anterior || siguiente) && (
+			<nav class="detalle-nav" aria-label="Recorrer las obras">
+				{anterior ? (
+					<a class="detalle-nav__link" href={`/obras/${anterior.slug}`} rel="prev">
+						<span class="detalle-nav__sentido">
+							<span aria-hidden="true">←</span> Anterior
+						</span>
+						<span class="detalle-nav__titulo titulo-obra">{anterior.titulo}</span>
+					</a>
+				) : (
+					<span />
+				)}
+				{siguiente && (
+					<a class="detalle-nav__link detalle-nav__link--siguiente" href={`/obras/${siguiente.slug}`} rel="next">
+						<span class="detalle-nav__sentido">
+							Siguiente <span aria-hidden="true">→</span>
+						</span>
+						<span class="detalle-nav__titulo titulo-obra">{siguiente.titulo}</span>
+					</a>
+				)}
+			</nav>
 		)
 	}
-
-	{obra.descripcionCorta && <p class="detalle-texto">{obra.descripcionCorta}</p>}
-
-	{
-		linkConsulta && (
-			<a
-				class:list={['btn', 'btn-block', 'detalle-consulta', vendida ? 'btn-outline' : 'btn-solid']}
-				href={linkConsulta}
-				target="_blank"
-				rel="noopener noreferrer"
-			>
-				{vendida ? 'Consultar por obras similares' : estado ? 'Consultar por esta obra' : 'Consultar sobre esta obra'}
-				<span class="arrow" aria-hidden="true">→</span>
-			</a>
-		)
-	}
-
-	<hr class="detalle-separa" />
-
-	<dl>
-		{
-			categoria && (
-				<div class="detalle-extra">
-					<svg viewBox="0 0 24 24" aria-hidden="true">
-						<rect x="4" y="5" width="16" height="14" fill="none" stroke="currentColor" stroke-width="1.25" />
-					</svg>
-					<dt>Categoría</dt>
-					<dd>{categoria}</dd>
-				</div>
-			)
-		}
-		{
-			obra.serie && (
-				<div class="detalle-extra">
-					<svg viewBox="0 0 24 24" aria-hidden="true">
-						<rect x="7" y="7" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.25" />
-						<rect x="4" y="4" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.25" />
-					</svg>
-					<dt>Serie</dt>
-					<dd>{obra.serie}</dd>
-				</div>
-			)
-		}
-		{
-			envio && (
-				<div class="detalle-extra">
-					<svg viewBox="0 0 24 24" aria-hidden="true">
-						<rect x="2.5" y="8" width="11" height="8" fill="none" stroke="currentColor" stroke-width="1.25" />
-						<path d="M13.5 12.5h5.5M16.5 10l2.5 2.5-2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.25" />
-					</svg>
-					<dt>Envío / colección</dt>
-					<dd>{envio}</dd>
-				</div>
-			)
-		}
-	</dl>
 </div>

@@ -23,31 +23,66 @@ const principal = obra?.imagenPrincipal?.asset ? obra : null
 const piezas = [principal, ...destacadas.filter((item) => item.slug !== principal?.slug)]
 	.filter((item) => item?.imagenPrincipal?.asset)
 	.slice(0, 5)
-	.map((item) => {
+	.map((item, orden) => {
 		const { ancho, alto } = medidasImagen(item.imagenPrincipal)
-		return { ...item, ancho, alto, horizontal: ancho > alto * 1.15 }
+		return { ...item, orden, ancho, alto, horizontal: ancho > alto * 1.15 }
 	})
 
-// Móvil: las horizontales ocupan todo el ancho; las demás se agrupan de a dos, escalonadas.
+/*
+	Escritorio: dos pilas sobre la grilla de 12 columnas.
+	Pila A (columnas 1–7): la protagonista en 1–7, las siguientes en 2–6.
+	Pila B (columnas 8–12): la segunda en 9–12, alineada arriba con la protagonista; luego 8–12 y 9–12.
+	Desde la tercera, cada obra va a la pila más corta, así ninguna deja un hueco.
+	Si una imagen no alcanza su resolución real con el contenedor máximo (1680 px), pierde columnas.
+*/
+const ANCHO_MAX = 1680
+const SEPARACION = 24
+const COLUMNA = (ANCHO_MAX - 11 * SEPARACION) / 12
+const PIE = 48
+const ENTRE_OBRAS = 96
+const anchoDe = (columnas) => columnas * COLUMNA + (columnas - 1) * SEPARACION
+
+const pilas = [
+	{ inicio: 1, alto: 0, piezas: [], lugares: [{ desde: 1, columnas: 7 }, { desde: 2, columnas: 5 }] },
+	{
+		inicio: 8,
+		alto: 0,
+		piezas: [],
+		lugares: [{ desde: 9, columnas: 4 }, { desde: 8, columnas: 5 }, { desde: 9, columnas: 4 }],
+	},
+]
+
+function ubicar(pieza, pila) {
+	const cantidad = pila.piezas.length
+	const lugar = cantidad === 0 ? pila.lugares[0] : pila.lugares[1 + ((cantidad - 1) % (pila.lugares.length - 1))]
+	let columnas = lugar.columnas
+	while (columnas > 3 && anchoDe(columnas) > pieza.ancho) columnas--
+	pieza.columnaEscritorio = `${lugar.desde - pila.inicio + 1} / span ${columnas}`
+	pila.alto += (cantidad ? ENTRE_OBRAS : 0) + (anchoDe(columnas) * pieza.alto) / pieza.ancho + PIE
+	pila.piezas.push(pieza)
+}
+
+for (const pieza of piezas) {
+	const destino = pieza.orden < 2 ? pilas[pieza.orden] : pilas[0].alto <= pilas[1].alto ? pilas[0] : pilas[1]
+	ubicar(pieza, destino)
+}
+
+// Móvil (4 columnas): la primera y las horizontales a todo el ancho; las demás de a dos.
 let pendiente = null
-for (const [indice, pieza] of piezas.entries()) {
-	if (indice === 0 || pieza.horizontal) {
-		pieza.movil = 'completa'
+for (const pieza of piezas) {
+	if (pieza.orden === 0 || pieza.horizontal) {
+		pieza.columnaMovil = '1 / -1'
 		continue
 	}
 	if (pendiente) {
-		pendiente.movil = 'par-a'
-		pieza.movil = 'par-b'
+		pendiente.columnaMovil = '1 / 3'
+		pieza.columnaMovil = '3 / 5'
 		pendiente = null
 	} else {
 		pendiente = pieza
 	}
 }
-if (pendiente) pendiente.movil = 'sola'
-
-// Escritorio: dos columnas desfasadas. Izquierda: 1.ª y 4.ª obra; derecha: el resto.
-const izquierda = piezas.filter((_, indice) => indice === 0 || indice === 3)
-const derecha = piezas.filter((_, indice) => indice !== 0 && indice !== 3)
+if (pendiente) pendiente.columnaMovil = '2 / 5'
 
 const estado = principal ? estados[principal.estado] || null : null
 const meta = principal ? [principal.anio, principal.tecnica, principal.dimensiones].filter(Boolean).join(' · ') : ''
@@ -56,10 +91,10 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 
 {
 	piezas.length > 0 && (
-		<section class="seleccion" aria-labelledby="seleccion-titulo">
-			<header class="seleccion__cabecera fade-in">
-				<p class="label">Obras</p>
-				<h2 id="seleccion-titulo" class="titulo-seccion">
+		<section class="seleccion contenedor" aria-labelledby="seleccion-titulo">
+			<header class="seleccion__cabecera grilla fade-in">
+				<p class="label seleccion__label">Obras</p>
+				<h2 id="seleccion-titulo" class="titulo-seccion seleccion__titulo">
 					Selección de obra
 				</h2>
 				<a class="enlace seleccion__todas" href="/obras">
@@ -67,30 +102,28 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 				</a>
 			</header>
 
-			<div class:list={['seleccion__grilla', piezas.length === 1 && 'seleccion__grilla--una']}>
-				{[izquierda, derecha].map((columna, numero) =>
-					columna.length > 0 && (
-						<div class:list={['seleccion__columna', numero === 0 ? 'seleccion__columna--a' : 'seleccion__columna--b']}>
-							{columna.map((pieza) => {
-								const orden = piezas.indexOf(pieza)
-								const esPrincipal = orden === 0
+			<div class="seleccion__grilla grilla">
+				{pilas.map((pila, numero) =>
+					pila.piezas.length > 0 && (
+						<div class:list={['seleccion__pila', numero === 0 ? 'seleccion__pila--a' : 'seleccion__pila--b']}>
+							{pila.piezas.map((pieza) => {
+								const esPrincipal = pieza.orden === 0 && Boolean(principal)
 								return (
 									<article
-										class:list={['pieza fade-in', `pieza--${pieza.movil}`, esPrincipal && 'pieza--principal']}
-										style={`--orden: ${orden}; --ancho-natural: ${pieza.ancho}px`}
+										class="pieza fade-in"
+										style={`--orden: ${pieza.orden}; --columna: ${pieza.columnaEscritorio}; --columna-movil: ${pieza.columnaMovil}`}
 									>
 										<a class="pieza__enlace" href={pieza.slug ? `/obras/${pieza.slug}` : '/obras'}>
 											<div class="pieza__marco">
 												<Imagen
 													source={pieza.imagenPrincipal}
+													transicion={pieza.slug ? `obra-${pieza.slug}` : ''}
 													alt={pieza.imagenPrincipal?.alt || pieza.titulo}
-													width={esPrincipal ? 1200 : 900}
+													width={pieza.orden === 0 ? 1200 : 900}
 													sizes={
-														esPrincipal
-															? '(min-width: 64rem) 52vw, 100vw'
-															: pieza.movil === 'completa'
-																? '(min-width: 64rem) 36vw, 100vw'
-																: '(min-width: 64rem) 30vw, 50vw'
+														pieza.columnaMovil === '1 / -1'
+															? '(min-width: 64rem) min(58vw, 970px), 100vw'
+															: '(min-width: 64rem) min(42vw, 690px), 50vw'
 													}
 												/>
 											</div>
@@ -110,7 +143,8 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 												)}
 												{linkConsulta && (
 													<a class="enlace" href={linkConsulta} target="_blank" rel="noopener noreferrer">
-														{estado ? 'Consultar por esta obra' : 'Consultar sobre esta obra'} <span class="arrow" aria-hidden="true">→</span>
+														{estado ? 'Consultar por esta obra' : 'Consultar sobre esta obra'}{' '}
+														<span class="arrow" aria-hidden="true">→</span>
 													</a>
 												)}
 											</div>
@@ -128,49 +162,35 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 
 <style>
 	.seleccion {
-		padding: clamp(2.5rem, 5vw, 4.5rem) var(--gutter) 0;
+		--entre-obras: 3rem;
 	}
 
 	.seleccion__cabecera {
-		display: grid;
-		gap: 0.9rem;
-		justify-items: start;
+		row-gap: 0.9rem;
+		margin-bottom: 3rem;
 	}
 
+	.seleccion__label,
+	.seleccion__titulo,
 	.seleccion__todas {
-		margin-top: 0.5rem;
+		grid-column: 1 / -1;
+		justify-self: start;
 	}
 
-	/* Móvil y tablet: las columnas desaparecen y las obras se ordenan en una grilla de dos. */
+	/* Móvil: las pilas desaparecen y las obras se ordenan en la grilla de 4 columnas. */
 	.seleccion__grilla {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 2.75rem 1rem;
+		row-gap: var(--entre-obras);
 		align-items: start;
-		margin-top: 3rem;
 	}
 
-	.seleccion__columna {
+	.seleccion__pila {
 		display: contents;
 	}
 
 	.pieza {
+		grid-column: var(--columna-movil);
 		order: var(--orden);
 		min-width: 0;
-	}
-
-	.pieza--completa {
-		grid-column: 1 / -1;
-	}
-
-	.pieza--par-b {
-		margin-top: 3.5rem;
-	}
-
-	.pieza--sola {
-		grid-column: 1 / -1;
-		width: 64%;
-		margin-left: auto;
 	}
 
 	.pieza__enlace {
@@ -180,7 +200,6 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 	}
 
 	.pieza__marco {
-		max-width: var(--ancho-natural);
 		background-color: var(--color-surface);
 	}
 
@@ -198,6 +217,8 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 	}
 
 	.pieza__titulo {
+		font-size: 1.1875rem;
+		line-height: 1.2;
 		background-image: linear-gradient(currentColor, currentColor);
 		background-position: 0 100%;
 		background-repeat: no-repeat;
@@ -205,17 +226,8 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 		transition: background-size 0.5s var(--ease);
 	}
 
-	.pieza__titulo {
-		font-size: 1.1875rem;
-		line-height: 1.2;
-	}
-
 	.pieza__anio {
 		color: var(--color-muted);
-	}
-
-	.pieza--principal .pieza__titulo {
-		font-size: 1.375rem;
 	}
 
 	.pieza__ficha {
@@ -249,99 +261,57 @@ const linkConsulta = principal ? consultaWhatsapp(whatsapp, principal.titulo, pr
 
 	@media (hover: hover) and (pointer: fine) {
 		.pieza__enlace:hover .pieza__marco :global(img) {
-			opacity: 0.88;
+			opacity: 0.85;
 		}
 	}
 
-	@media (min-width: 48rem) {
-		.seleccion__grilla {
-			gap: 4rem 1.5rem;
-			margin-top: 4rem;
-		}
-
-		.pieza--principal {
-			width: 82%;
-		}
-
-		.pieza--par-b {
-			margin-top: 6rem;
-		}
-
-		.pieza--sola {
-			width: 48%;
-		}
-	}
-
-	/* Escritorio: columna ancha a la izquierda, columna angosta y desfasada a la derecha. */
+	/* Escritorio: dos pilas que son subgrillas de la grilla de 12 columnas. */
 	@media (min-width: 64rem) {
-		.seleccion__cabecera {
-			grid-template-columns: repeat(12, minmax(0, 1fr));
-			column-gap: 1.5rem;
-			align-items: end;
-			row-gap: 0.9rem;
+		.seleccion {
+			--entre-obras: 6rem;
 		}
 
-		.seleccion__cabecera .label {
-			grid-column: 1 / 9;
+		.seleccion__cabecera {
+			align-items: last baseline;
+			margin-bottom: 4.5rem;
+		}
+
+		.seleccion__label {
 			grid-row: 1;
 		}
 
-		.seleccion__cabecera .titulo-seccion {
-			grid-column: 1 / 9;
+		.seleccion__titulo {
+			grid-column: 1 / 10;
 			grid-row: 2;
 		}
 
 		.seleccion__todas {
-			grid-column: 9 / -1;
+			grid-column: 10 / 13;
 			grid-row: 2;
 			justify-self: end;
-			margin: 0 0 0.5rem;
 		}
 
-		.seleccion__grilla {
-			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-			column-gap: clamp(3rem, 7vw, 8rem);
-			margin-top: clamp(4rem, 7vw, 6.5rem);
+		.seleccion__pila {
+			display: grid;
+			grid-template-columns: subgrid;
+			align-content: start;
+			row-gap: var(--entre-obras);
 		}
 
-		.seleccion__grilla--una {
-			grid-template-columns: minmax(0, 1fr);
-			width: min(100%, 56rem);
-			margin-inline: auto;
+		.seleccion__pila--a {
+			grid-column: 1 / 8;
 		}
 
-		.seleccion__columna {
-			display: flex;
-			flex-direction: column;
-			gap: clamp(4rem, 6.5vw, 7rem);
+		.seleccion__pila--b {
+			grid-column: 8 / 13;
 		}
 
-		.seleccion__columna--b {
-			padding-top: clamp(4rem, 8vw, 9rem);
+		.pieza {
+			grid-column: var(--columna);
 		}
 
-		.pieza,
-		.pieza--completa,
-		.pieza--sola,
-		.pieza--principal {
-			width: 100%;
-			margin: 0;
-		}
-
-		/* Variación de escala dentro de cada columna. */
-		.seleccion__columna--a .pieza:nth-child(2) {
-			width: 70%;
-			margin-top: clamp(2rem, 5vw, 5rem);
-			margin-left: 16%;
-		}
-
-		.seleccion__columna--b .pieza:nth-child(2) {
-			width: 80%;
-		}
-
-		.seleccion__columna--b .pieza:nth-child(3) {
-			width: 68%;
-			margin-left: auto;
+		.seleccion__pila--a .pieza:first-child .pieza__titulo {
+			font-size: 1.375rem;
 		}
 	}
 

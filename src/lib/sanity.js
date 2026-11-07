@@ -60,11 +60,13 @@ function archivoDemo(archivo) {
   return archivosDemo.get(archivo)
 }
 
-// Devuelve la variante más chica que cubre el ancho pedido; si no hay, el archivo completo.
-function varianteDemo(datos, anchoPedido) {
-  if (anchoPedido > 0) {
+// Devuelve la variante más chica que cubre el ancho pedido y, si se recorta, también el alto
+// (una imagen horizontal recortada en vertical necesita más ancho). Si no hay, el archivo completo.
+function varianteDemo(datos, anchoPedido, altoPedido = 0) {
+  const necesario = Math.max(anchoPedido, altoPedido > 0 ? (altoPedido * datos.ancho) / datos.alto : 0)
+  if (necesario > 0) {
     for (const ancho of ANCHOS_DEMO) {
-      if (ancho < anchoPedido || ancho >= datos.ancho) continue
+      if (ancho < necesario || ancho >= datos.ancho) continue
       const variante = archivoDemo(`${datos.nombre}-${ancho}.${datos.extension}`)
       if (variante) return variante
     }
@@ -95,7 +97,7 @@ function cadenaDemo(source) {
     },
     url() {
       if (!datos) return ''
-      const archivo = varianteDemo(datos, anchoPedido)
+      const archivo = varianteDemo(datos, anchoPedido, altoPedido)
       if (archivo) return archivo
       const recorte = anchoPedido > 0 && altoPedido > 0
       return rectangulo(recorte ? anchoPedido : datos.ancho, recorte ? altoPedido : datos.alto)
@@ -358,6 +360,27 @@ export function medidasImagen(imagen) {
   return proporcionObra(imagen, ref)
 }
 
+// Vista borrosa y color dominante de una imagen (los provee Sanity; en demo se generan en el build).
+function cargaDe(imagen) {
+  const metadata = imagen?.asset?.metadata
+  return {
+    lqip: metadata?.lqip || '',
+    dominante: metadata?.palette?.dominant?.background || '',
+  }
+}
+
+// srcset sin anchos inventados: ninguna versión se pide ni se declara más ancha que la imagen real
+// (Sanity no agranda, y un descriptor mayor que el archivo achica la imagen en pantalla).
+function versiones(source, anchoNatural, anchos) {
+  const reales = [...new Set(anchos.map((ancho) => Math.min(ancho, anchoNatural)))]
+  const lista = reales.map((ancho) => ({ ancho, url: urlFor(source).width(ancho).url() }))
+  return {
+    src: lista[lista.length - 1].url,
+    srcset: lista.map(({ ancho, url }) => `${url} ${ancho}w`).join(', '),
+    lista,
+  }
+}
+
 function prepararObraGaleria(obra) {
   const imagen = obra.imagenPrincipal
   const ref = imagen?.asset?._id || imagen?.asset?._ref || ''
@@ -369,7 +392,7 @@ function prepararObraGaleria(obra) {
     dimensiones: obra.dimensiones || '',
     estado: obra.estado || '',
     categoria: obra.categoria || '',
-    serie: (obra.serie || '').trim(),
+    proyecto: (obra.proyecto || '').trim(),
     imagen: null,
   }
   if (!ref) return base
@@ -381,16 +404,16 @@ function prepararObraGaleria(obra) {
     asset: { _ref: ref },
   }
   const { ancho, alto } = proporcionObra(imagen, ref)
-  const chica = urlFor(source).width(640).url()
-  const grande = urlFor(source).width(1280).url()
+  const { src, srcset } = versiones(source, ancho, [640, 1280, 1920])
   return {
     ...base,
     imagen: {
-      src: grande,
-      srcset: `${chica} 640w, ${grande} 1280w`,
+      src,
+      srcset,
       ancho,
       alto,
       alt: imagen.alt || obra.titulo || '',
+      ...cargaDe(imagen),
     },
   }
 }
@@ -436,7 +459,7 @@ export async function fetchGaleria() {
         dimensiones,
         estado,
         categoria,
-        serie,
+        proyecto,
         imagenPrincipal {
           alt,
           crop,
@@ -478,33 +501,21 @@ function fuenteDe(imagen) {
 function fotoDetalle(imagen, titulo = '') {
   const fuente = fuenteDe(imagen)
   if (!fuente) return null
-  const chica = urlFor(fuente.source).width(700).url()
-  const grande = urlFor(fuente.source).width(1400).url()
+  const visor = versiones(fuente.source, fuente.ancho, [700, 1400])
+  const ampliada = versiones(fuente.source, fuente.ancho, [1400, 2000])
   const thumbChica = urlFor(fuente.source).width(90).height(90).url()
   const thumb = urlFor(fuente.source).width(180).height(180).url()
-  const luz = urlFor(fuente.source).width(2000).url()
   return {
     alt: fuente.alt || titulo || '',
     ancho: fuente.ancho,
     alto: fuente.alto,
     thumb,
     thumbSrcset: `${thumbChica} 90w, ${thumb} 180w`,
-    src: grande,
-    srcset: `${chica} 700w, ${grande} 1400w`,
-    lightbox: luz,
-    lightboxSrcset: `${grande} 1400w, ${luz} 2000w`,
-  }
-}
-
-function miniaturaCuadrada(imagen, altTitulo) {
-  const fuente = fuenteDe(imagen)
-  if (!fuente) return null
-  const chica = urlFor(fuente.source).width(480).height(480).url()
-  const grande = urlFor(fuente.source).width(900).height(900).url()
-  return {
-    src: grande,
-    srcset: `${chica} 480w, ${grande} 900w`,
-    alt: fuente.alt || altTitulo || '',
+    src: visor.src,
+    srcset: visor.srcset,
+    lightbox: ampliada.src,
+    lightboxSrcset: ampliada.srcset,
+    ...cargaDe(imagen),
   }
 }
 
@@ -520,31 +531,39 @@ function prepararObraDetalle(obra) {
     dimensiones: obra.dimensiones || '',
     estado: obra.estado || '',
     categoria: obra.categoria || '',
-    serie: (obra.serie || '').trim(),
+    proyecto: (obra.proyecto || '').trim(),
     descripcionCorta: obra.descripcionCorta || '',
     imagenes: fotos,
-    miniatura: miniaturaCuadrada(obra.imagenPrincipal, obra.titulo),
+    imagenPrincipal: obra.imagenPrincipal?.asset ? obra.imagenPrincipal : null,
   }
 }
 
+// "Más obras": 3 obras, primero las del mismo proyecto; se muestran en su proporción original.
 export function elegirRelacionadas(obras, actual) {
-  const resto = obras.filter((obra) => obra.slug !== actual.slug)
-  const mismas = actual.serie ? resto.filter((obra) => obra.serie === actual.serie) : []
-  const otras = actual.serie ? resto.filter((obra) => obra.serie !== actual.serie) : resto
-  return [...mismas, ...otras].slice(0, 4).map((obra) => ({
+  const resto = obras.filter((obra) => obra.slug !== actual.slug && obra.imagenPrincipal)
+  const mismas = actual.proyecto ? resto.filter((obra) => obra.proyecto === actual.proyecto) : []
+  const otras = actual.proyecto ? resto.filter((obra) => obra.proyecto !== actual.proyecto) : resto
+  return [...mismas, ...otras].slice(0, 3).map((obra) => ({
     titulo: obra.titulo,
     slug: obra.slug,
-    miniatura: obra.miniatura || null,
+    anio: obra.anio,
+    proyecto: obra.proyecto,
+    imagen: obra.imagenPrincipal,
   }))
 }
 
 const imagenConMedidas = imagen
 
+// Obra vecina en el orden de la galería, para recorrer el catálogo con Anterior / Siguiente.
+function vecina(obra) {
+  return obra ? { titulo: obra.titulo, slug: obra.slug } : null
+}
+
 function paginasDe(vistas, artista, configuracion) {
   const envioColeccion =
     typeof configuracion?.envioColeccion === 'string' ? configuracion.envioColeccion.trim() : ''
 
-  return vistas.map((obra) => ({
+  return vistas.map((obra, indice) => ({
     params: { slug: obra.slug },
     props: {
       obra: {
@@ -555,10 +574,12 @@ function paginasDe(vistas, artista, configuracion) {
         dimensiones: obra.dimensiones,
         estado: obra.estado,
         categoria: obra.categoria,
-        serie: obra.serie,
+        proyecto: obra.proyecto,
         descripcionCorta: obra.descripcionCorta,
         imagenes: obra.imagenes,
       },
+      anterior: vecina(vistas[indice - 1]),
+      siguiente: vecina(vistas[indice + 1]),
       relacionadas: elegirRelacionadas(vistas, obra),
       artista: {
         nombre: artista?.nombre || '',
@@ -611,7 +632,7 @@ export async function fetchPaginasObra() {
         dimensiones,
         estado,
         categoria,
-        serie,
+        proyecto,
         descripcionCorta,
         imagenPrincipal ${imagenConMedidas},
         imagenesAdicionales[] ${imagenConMedidas}

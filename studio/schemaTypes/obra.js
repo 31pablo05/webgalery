@@ -77,19 +77,19 @@ export const obra = defineType({
         layout: 'radio',
         list: [
           {title: 'Dibujo', value: 'dibujo'},
-          {title: 'Obra bidimensional', value: 'obra-bidimensional'},
+          {title: 'Instalación', value: 'instalacion'},
           {title: 'Experimentación gráfica', value: 'experimentacion-grafica'},
-          {title: 'Intervención', value: 'intervencion'},
+          {title: 'Obra bidimensional', value: 'obra-bidimensional'},
         ],
       },
       validation: (rule) => rule.required().error('Elegí una categoría.'),
     }),
     defineField({
-      name: 'serie',
-      title: 'Serie',
+      name: 'proyecto',
+      title: 'Proyecto',
       type: 'string',
       description:
-        'Opcional. Si esta obra pertenece a una serie, escribí el nombre. Ejemplo: Territorio en movimiento. Las obras con el mismo nombre se agrupan juntas.',
+        'Opcional. El proyecto al que pertenece la obra, escrito siempre igual. Ejemplo: BUCEAR: Del punto… a la línea. Las obras del mismo proyecto se agrupan juntas y se recomiendan entre sí.',
     }),
     campoImagen({
       name: 'imagenPrincipal',

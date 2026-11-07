@@ -28,12 +28,12 @@ const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : unde
 	youtube={configuracion?.youtube}
 >
 	<Hero hero={hero} nombre={nombre} subtitulo={artista?.subtitulo} frase={artista?.frase} />
-	<Trazo arriba="clamp(3rem, 7vw, 6rem)" />
+	<Trazo />
 	<ObrasDestacadas
 		destacadas={destacadas}
 		obra={configuracion?.obraPrincipal}
 		whatsapp={configuracion?.whatsapp}
 	/>
-	<Trazo arriba="var(--seccion)" />
+	<Trazo />
 	<Presentacion proyectos={audiovisual} artista={artista} vimeo={configuracion?.vimeo} />
 </Layout>

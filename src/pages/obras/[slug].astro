@@ -9,7 +9,7 @@ export async function getStaticPaths() {
 	return fetchPaginasObra()
 }
 
-const { obra, artista, configuracion, relacionadas } = Astro.props
+const { obra, artista, configuracion, relacionadas, anterior, siguiente } = Astro.props
 const envio = configuracion?.envioColeccion || ''
 const titulo = artista?.nombre ? `${obra.titulo} — ${artista.nombre}` : obra.titulo
 const descripcion = obra.descripcionCorta || (artista?.nombre ? `${obra.titulo}, obra de ${artista.nombre}.` : obra.titulo)
@@ -28,17 +28,23 @@ const descripcion = obra.descripcionCorta || (artista?.nombre ? `${obra.titulo},
 	vimeo={configuracion?.vimeo}
 	youtube={configuracion?.youtube}
 >
-	<div class="detalle-volver">
+	<div class="detalle-volver contenedor">
 		<a class="detalle-volver__link" href="/obras">
 			<span class="detalle-volver__flecha" aria-hidden="true">←</span>
 			Volver a obras
 		</a>
 	</div>
-	<article class="detalle">
+	<article class="detalle contenedor grilla">
 		<div class="detalle__visor">
-			<Visor client:load imagenes={obra.imagenes} titulo={obra.titulo} />
+			<Visor client:load imagenes={obra.imagenes} titulo={obra.titulo} slug={obra.slug} />
 		</div>
-		<FichaObra obra={obra} whatsapp={configuracion?.whatsapp} envio={envio} />
+		<FichaObra
+			obra={obra}
+			whatsapp={configuracion?.whatsapp}
+			envio={envio}
+			anterior={anterior}
+			siguiente={siguiente}
+		/>
 	</article>
 	<MasObras obras={relacionadas} />
 </Layout>

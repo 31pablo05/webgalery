@@ -1,23 +1,20 @@
 ---
 import Imagen from './Imagen.astro'
-import { medidasImagen } from '../../lib/sanity.js'
+import Trazo from '../layout/Trazo.astro'
 
 const { proyectos = [], artista, vimeo = '' } = Astro.props
 const retrato = artista?.retrato
 const bio = artista?.bioCorta || ''
 const tieneRetrato = Boolean(retrato?.asset)
 
-// Con videos, la banda muestra la portada real del más reciente. Sin videos, la imagen de la página
+// Con videos, la sección muestra la portada real del más reciente. Sin videos, la imagen de la página
 // Audiovisual como registro de proceso: no se presenta como portada de ningún video.
 const [video] = proyectos
 const fondo = artista?.heroAudiovisual?.imagen
 const tieneFondo = Boolean(fondo?.asset)
 const bajadaAudiovisual = artista?.heroAudiovisual?.bajada?.trim() || ''
-
-// Ninguna imagen se muestra más ancha que su resolución original.
-const anchoFondo = tieneFondo ? medidasImagen(fondo).ancho : 0
-const anchoRetrato = tieneRetrato ? medidasImagen(retrato).ancho : 0
 const hayAudiovisual = Boolean(video) || tieneFondo || Boolean(vimeo)
+const hayArtista = Boolean(bio) || tieneRetrato
 
 function textoDuracion(duracion) {
 	const valor = String(duracion || '').trim()
@@ -30,10 +27,10 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 
 {
 	hayAudiovisual && (
-		<section class="cine" aria-labelledby="cine-titulo">
+		<section class="cine contenedor grilla" aria-labelledby="cine-titulo">
 			<div class="cine__texto fade-in">
 				<div class="cine__encabezado">
-					<p class="label cine__label">Imagen en movimiento</p>
+					<p class="label">Imagen en movimiento</p>
 					<h2 id="cine-titulo" class="titulo-seccion">
 						Audiovisual
 					</h2>
@@ -61,7 +58,7 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 								alt={video.miniatura?.alt || video.titulo}
 								width={1280}
 								height={720}
-								sizes="(min-width: 64rem) 58vw, 100vw"
+								sizes="(min-width: 64rem) min(66vw, 1110px), 100vw"
 							/>
 						) : (
 							video.miniaturaUrl && (
@@ -83,14 +80,14 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 				</a>
 			) : (
 				tieneFondo && (
-					<figure class="cine__obra fade-in" style={`--ancho-natural: ${anchoFondo}px`}>
+					<figure class="cine__obra fade-in">
 						<div class="cine__cuadro">
 							<Imagen
 								source={fondo}
 								alt={fondo.alt || ''}
 								width={1600}
 								height={686}
-								sizes="(min-width: 64rem) 58vw, 100vw"
+								sizes="(min-width: 64rem) min(66vw, 1110px), 100vw"
 							/>
 						</div>
 						{fondo.alt && <figcaption class="cine__pie cine__meta">{fondo.alt}</figcaption>}
@@ -101,9 +98,11 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 	)
 }
 
+{hayAudiovisual && hayArtista && <Trazo />}
+
 {
-	(bio || tieneRetrato) && (
-		<section class:list={['artista', !tieneRetrato && 'artista--sin-foto']} aria-labelledby="artista-titulo">
+	hayArtista && (
+		<section class:list={['artista contenedor grilla', !tieneRetrato && 'artista--sin-foto']} aria-labelledby="artista-titulo">
 			<div class="artista__intro fade-in">
 				<h2 id="artista-titulo" class="label">
 					Sobre la artista
@@ -111,12 +110,12 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 				{bio && <p class="artista__texto titulo-obra">{bio}</p>}
 			</div>
 			{tieneRetrato && (
-				<figure class="artista__foto fade-in" style={`--ancho-natural: ${anchoRetrato}px`}>
+				<figure class="artista__foto fade-in">
 					<Imagen
 						source={retrato}
 						alt={retrato.alt || artista?.nombre || ''}
 						width={1000}
-						sizes="(min-width: 64rem) 40vw, 82vw"
+						sizes="(min-width: 64rem) min(42vw, 690px), 75vw"
 					/>
 				</figure>
 			)}
@@ -128,14 +127,15 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 }
 
 <style>
-	/* Banda audiovisual: fondo carbón, texto a un lado y un único cuadro. */
+	/* Audiovisual: texto a un lado y un único cuadro, sobre la grilla. */
 	.cine {
-		display: grid;
-		gap: 2.25rem;
-		margin-top: clamp(2.5rem, 5vw, 4.5rem);
-		padding: clamp(3.5rem, 8vw, 4.5rem) var(--gutter);
-		background-color: var(--color-dark);
-		color: var(--color-bg);
+		row-gap: 2.25rem;
+	}
+
+	.cine__texto,
+	.cine__obra {
+		grid-column: 1 / -1;
+		min-width: 0;
 	}
 
 	.cine__texto,
@@ -150,14 +150,12 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 		gap: 1.75rem;
 	}
 
-	.cine__label,
 	.cine__meta {
-		color: rgba(248, 247, 245, 0.68);
+		color: var(--color-muted);
 	}
 
 	.cine__bajada {
 		max-width: 26rem;
-		color: rgba(248, 247, 245, 0.85);
 		line-height: 1.6;
 	}
 
@@ -169,9 +167,6 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 
 	.cine__obra {
 		display: block;
-		min-width: 0;
-		max-width: var(--ancho-natural, none);
-		margin: 0 calc(-1 * var(--gutter));
 		color: inherit;
 		text-decoration: none;
 	}
@@ -180,7 +175,7 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 		position: relative;
 		overflow: hidden;
 		aspect-ratio: 16 / 9;
-		background-color: #222;
+		background-color: var(--color-surface);
 	}
 
 	.cine__cuadro > img,
@@ -198,7 +193,7 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 		inset: 0;
 		display: grid;
 		place-items: center;
-		color: #fff;
+		color: var(--color-ink);
 		pointer-events: none;
 	}
 
@@ -208,6 +203,7 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 		fill: none;
 		stroke: currentColor;
 		stroke-width: 1.25;
+		filter: drop-shadow(0 0 12px rgb(0 0 0 / 0.35));
 	}
 
 	.cine__pie {
@@ -217,7 +213,6 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 		justify-content: space-between;
 		gap: 0.35rem 1.5rem;
 		margin-top: 0.9rem;
-		padding-inline: var(--gutter);
 		font-size: 0.875rem;
 		line-height: 1.45;
 	}
@@ -228,7 +223,7 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 	}
 
 	.cine__obra--video:focus-visible {
-		outline: 1px solid #fff;
+		outline: 1px solid var(--color-ink);
 		outline-offset: 4px;
 	}
 
@@ -241,14 +236,6 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 	}
 
 	@media (min-width: 48rem) {
-		.cine__obra {
-			margin-inline: 0;
-		}
-
-		.cine__pie {
-			padding-inline: 0;
-		}
-
 		.cine__cuadro {
 			aspect-ratio: 21 / 9;
 		}
@@ -258,31 +245,21 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 		}
 	}
 
-	/* Escritorio: dos columnas; la banda nunca supera el 70 % del alto de la pantalla. */
+	/* Escritorio: texto en las columnas 1–4, cuadro en las 5–12; no supera el 70 % del alto. */
 	@media (min-width: 64rem) {
-		.cine {
-			--relleno: clamp(2.5rem, 6svh, 4rem);
-			grid-template-columns: repeat(12, minmax(0, 1fr));
-			column-gap: 1.5rem;
-			align-items: stretch;
-			padding-block: var(--relleno);
-		}
-
 		.cine__texto {
 			grid-column: 1 / 5;
 			align-content: space-between;
 		}
 
 		.cine__obra {
-			grid-column: 5 / -1;
-			justify-self: end;
-			width: 100%;
+			grid-column: 5 / 13;
 		}
 
 		.cine__cuadro,
 		.cine__obra--video .cine__cuadro {
 			aspect-ratio: auto;
-			height: min(calc(70svh - 2 * var(--relleno) - 2.75rem), 34rem);
+			height: min(calc(70svh - 3rem), 34rem);
 		}
 
 		.cine__enlaces {
@@ -291,83 +268,58 @@ const fichaVideo = video ? [video.anio, textoDuracion(video.duracion)].filter(Bo
 		}
 	}
 
-	/* Sobre la artista: fotografía grande y texto breve, en composición asimétrica. */
+	/* Sobre la artista: fotografía grande y texto breve. */
 	.artista {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		grid-template-areas:
-			'intro'
-			'foto'
-			'enlace';
-		padding: var(--seccion) var(--gutter);
+		row-gap: 2.5rem;
 	}
 
-	.artista__intro {
-		grid-area: intro;
-	}
-
-	.artista__texto {
-		margin-top: 1.25rem;
-		font-size: clamp(1.625rem, 2.6vw, 2.375rem);
-		line-height: 1.16;
-		text-wrap: pretty;
+	.artista__intro,
+	.artista__enlace {
+		grid-column: 1 / -1;
 	}
 
 	.artista__foto {
-		grid-area: foto;
-		width: 82%;
-		max-width: var(--ancho-natural, none);
-		margin: 2.5rem 0 0 auto;
+		grid-column: 2 / -1;
 		background-color: var(--color-surface);
 	}
 
 	.artista__enlace {
-		grid-area: enlace;
 		justify-self: start;
-		margin-top: 2rem;
 	}
 
-	.artista--sin-foto .artista__intro {
-		max-width: 48rem;
-	}
-
-	@media (min-width: 48rem) {
-		.artista__foto {
-			width: 64%;
-		}
+	.artista__texto {
+		margin-top: 1.25rem;
+		font-size: clamp(1.625rem, 2.4vw, 2.25rem);
+		line-height: 1.16;
+		text-wrap: pretty;
 	}
 
 	@media (min-width: 64rem) {
 		.artista {
-			grid-template-columns: repeat(12, minmax(0, 1fr));
 			grid-template-rows: minmax(0, 1fr) auto;
-			grid-template-areas: none;
-			column-gap: 1.5rem;
+			row-gap: 2.5rem;
 		}
 
 		.artista__foto {
 			grid-column: 1 / 6;
 			grid-row: 1 / span 2;
-			width: 100%;
-			margin: 0;
 		}
 
 		.artista__intro {
-			grid-column: 7 / -1;
+			grid-column: 7 / 13;
 			grid-row: 1;
 			align-self: end;
 		}
 
 		.artista__enlace {
-			grid-column: 7 / -1;
+			grid-column: 7 / 13;
 			grid-row: 2;
 			align-self: end;
-			margin-top: 2.5rem;
 		}
 
 		.artista--sin-foto .artista__intro,
 		.artista--sin-foto .artista__enlace {
-			grid-column: 4 / -2;
+			grid-column: 1 / 9;
 		}
 	}
 

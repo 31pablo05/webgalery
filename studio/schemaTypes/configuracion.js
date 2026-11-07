@@ -25,10 +25,11 @@ export const configuracion = defineType({
     }),
     defineField({
       name: 'whatsapp',
-      title: 'WhatsApp',
+      title: 'Teléfono de WhatsApp para consultas',
       type: 'string',
       group: 'contacto',
-      description: 'El celular con código de país adelante. Ejemplo: +54 9 280 4123456.',
+      description:
+        'Opcional. El celular con código de país adelante, por ejemplo +54 9 280 4123456. Si lo dejás vacío, no aparece el botón de consulta en las obras ni el WhatsApp en contacto.',
       validation: (rule) => rule.custom(esWhatsapp),
     }),
     defineField({

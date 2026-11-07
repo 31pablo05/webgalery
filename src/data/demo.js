@@ -28,8 +28,6 @@ function parrafo(partes) {
 	}
 }
 
-const PENDIENTE = 'Título y ficha técnica pendientes de confirmación.'
-
 function obra({
 	titulo,
 	slug,
@@ -38,7 +36,7 @@ function obra({
 	dimensiones = '',
 	estado = 'sin-especificar',
 	categoria = '',
-	serie = '',
+	proyecto = '',
 	archivo,
 	ancho,
 	alto,
@@ -57,7 +55,7 @@ function obra({
 		dimensiones,
 		estado,
 		categoria,
-		serie,
+		proyecto,
 		descripcionCorta: descripcion,
 		destacadaEnInicio: destacada,
 		ordenGaleria: orden,
@@ -76,7 +74,6 @@ export const obras = [
 		alto: 931,
 		alt: 'Rukacorazon: trazos dorados que forman una trama sobre un fondo rojo oscuro.',
 		orden: 10,
-		descripcion: 'Ficha técnica pendiente de confirmación.',
 	}),
 	obra({
 		titulo: 'Allkün / Oír',
@@ -87,7 +84,6 @@ export const obras = [
 		alt: 'Allkün / Oír: dibujo de líneas negras sobre fondo claro, con un rostro fragmentado junto a un paisaje.',
 		destacada: true,
 		orden: 20,
-		descripcion: 'Ficha técnica pendiente de confirmación.',
 	}),
 	obra({
 		titulo: 'Obra 01',
@@ -98,7 +94,6 @@ export const obras = [
 		alt: 'Composición fluorescente de trazos violetas, verdes y amarillos sobre un fondo oscuro.',
 		destacada: true,
 		orden: 30,
-		descripcion: PENDIENTE,
 	}),
 	obra({
 		titulo: 'Obra 02',
@@ -109,7 +104,6 @@ export const obras = [
 		alt: 'Obra experimental multicolor con trazos amarillos sobre un gran plano azul.',
 		destacada: true,
 		orden: 40,
-		descripcion: PENDIENTE,
 	}),
 	obra({
 		titulo: 'Obra 03',
@@ -120,8 +114,23 @@ export const obras = [
 		alt: 'Composición de líneas rojas y celestes sobre un fondo oscuro, con el texto «Portal Derecha».',
 		destacada: true,
 		orden: 50,
-		descripcion: PENDIENTE,
 	}),
+]
+
+// Proyectos confirmados en publicaciones de la artista. BUCEAR no se asigna a ninguna obra de demo
+// porque no está confirmado qué piezas lo integran; se muestra con la foto de la instalación.
+export const proyectosArtisticos = [
+	{
+		nombre: 'BUCEAR: Del punto… a la línea',
+		imagen: {
+			...foto(
+				'celia-bucear.webp',
+				1672,
+				941,
+				'Celia Gómez Perea dentro de la sala intervenida de BUCEAR: Del punto… a la línea, con paredes y piso cubiertos de trazos de tinta negra.',
+			),
+		},
+	},
 ]
 
 const principal = obras.find((item) => item.slug === 'rukacorazon')
@@ -142,13 +151,16 @@ export const artista = {
 		linea2: '',
 		linea3: '',
 		bajada: 'Dibujo en tinta y línea, del papel a la instalación.',
-		// Respaldo: cuando llegue 08-bucear-instalacion.jpg, este lugar pasa a la foto de la instalación BUCEAR.
-		imagen: foto(
-			'celia-proceso.webp',
-			1600,
-			2123,
-			'Registro de proceso: pintura negra vertida con una regadera sobre una superficie blanca.',
-		),
+		// La foto es horizontal y el hero la recorta en vertical: el punto de interés queda sobre la artista.
+		imagen: {
+			...foto(
+				'celia-bucear.webp',
+				1672,
+				941,
+				'Celia Gómez Perea dentro de la sala intervenida de BUCEAR: Del punto… a la línea, con paredes y piso cubiertos de trazos de tinta negra.',
+			),
+			hotspot: { x: 0.37, y: 0.55, width: 1, height: 1 },
+		},
 	},
 	heroAudiovisual: {
 		bajada: 'Producción audiovisual de Celia Gómez Perea. Sus piezas se publican en Vimeo.',

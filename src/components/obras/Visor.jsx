@@ -17,7 +17,7 @@ function IconoFlecha({ sentido }) {
 	)
 }
 
-export default function Visor({ imagenes = [], titulo = '' }) {
+export default function Visor({ imagenes = [], titulo = '', slug = '' }) {
 	const [indice, setIndice] = useState(0)
 	const [visible, setVisible] = useState(true)
 	const [abierto, setAbierto] = useState(false)
@@ -90,28 +90,35 @@ export default function Visor({ imagenes = [], titulo = '' }) {
 
 	return (
 		<div className="visor">
+			{/* Detrás de la obra, su color dominante muy tenue sobre el fondo: ocupa todo el ancho de la columna. */}
 			<button
 				ref={escena}
 				type="button"
 				className="visor__escena"
+				style={{ '--dominante': actual.dominante || undefined }}
 				onClick={() => setAbierto(true)}
+				aria-label={`Ampliar ${actual.alt || titulo}`}
 			>
 				<img
 					className={claseImg}
 					src={actual.src}
 					srcSet={actual.srcset}
-					sizes="(min-width: 64rem) 50vw, 92vw"
+					sizes="(min-width: 64rem) min(55vw, 980px), 100vw"
 					alt={actual.alt || titulo}
 					width={actual.ancho}
 					height={actual.alto}
 					loading="eager"
 					fetchPriority="high"
 					decoding="async"
+					style={{
+						maxWidth: `min(100%, ${actual.ancho}px)`,
+						viewTransitionName: slug ? `obra-${slug}` : undefined,
+					}}
 				/>
 			</button>
 
 			{total > 1 && (
-				<ul className="visor__minis">
+				<ul className="visor__minis" aria-label="Imágenes de la obra">
 					{imagenes.map((imagen, i) => (
 						<li key={`${imagen.thumb}-${i}`}>
 							<button
@@ -124,8 +131,8 @@ export default function Visor({ imagenes = [], titulo = '' }) {
 								<img
 									src={imagen.thumb}
 									srcSet={imagen.thumbSrcset}
-									sizes="4.5rem"
-									alt={imagen.alt || titulo}
+									sizes="3.5rem"
+									alt=""
 									width="180"
 									height="180"
 									loading="lazy"
@@ -179,6 +186,7 @@ export default function Visor({ imagenes = [], titulo = '' }) {
 						width={actual.ancho}
 						height={actual.alto}
 						decoding="async"
+						style={{ maxWidth: `min(100%, ${actual.ancho}px)` }}
 						onClick={(event) => event.stopPropagation()}
 					/>
 					{total > 1 && (

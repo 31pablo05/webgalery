@@ -2,31 +2,35 @@ import { useEffect, useRef, useState } from 'react'
 
 const CATEGORIAS = [
 	{ id: 'dibujo', label: 'Dibujo' },
-	{ id: 'obra-bidimensional', label: 'Obra bidimensional' },
+	{ id: 'instalacion', label: 'Instalación' },
 	{ id: 'experimentacion-grafica', label: 'Experimentación gráfica' },
-	{ id: 'intervencion', label: 'Intervención' },
+	{ id: 'obra-bidimensional', label: 'Obra bidimensional' },
 ]
+
+// Columnas de escritorio sobre la grilla de 12, según cuántas obras hay.
+const COLUMNAS = {
+	2: ['1 / 7', '8 / 13'],
+	3: ['1 / 5', '5 / 9', '9 / 13'],
+	4: ['1 / 4', '4 / 7', '7 / 10', '10 / 13'],
+}
+
+// Medidas de referencia (grilla de 1440 px) para repartir las obras sin dejar huecos.
+const COLUMNA = 91.3
+const SEPARACION = 24
+const PIE = 64
+const ENTRE_OBRAS = 80
+const DESFASAJE = 160
 
 // Solo se ofrecen los filtros que tienen obras; con menos de dos categorías no hay barra.
 function pestanias(obras) {
 	const categorias = CATEGORIAS.filter((categoria) => obras.some((obra) => obra.categoria === categoria.id))
 	if (categorias.length < 2) return []
-	const series = obras.some((obra) => obra.serie) ? [{ id: 'series', label: 'Series' }] : []
-	return [{ id: 'todas', label: 'Todas' }, ...categorias, ...series]
-}
-
-const ESTADOS = {
-	disponible: { marca: '●', texto: 'Disponible', tenue: false },
-	reservada: { marca: '○', texto: 'Reservada', tenue: false },
-	vendida: { marca: '', texto: 'Vendida', tenue: true },
-}
-
-function metaDe(obra) {
-	return [obra.anio, obra.tecnica, obra.dimensiones].filter(Boolean).join(' · ')
+	const proyectos = obras.some((obra) => obra.proyecto) ? [{ id: 'proyectos', label: 'Proyectos' }] : []
+	return [{ id: 'todas', label: 'Todas' }, ...categorias, ...proyectos]
 }
 
 function filtrar(obras, filtro) {
-	if (filtro === 'series') return obras.filter((obra) => obra.serie)
+	if (filtro === 'proyectos') return obras.filter((obra) => obra.proyecto)
 	if (filtro !== 'todas') return obras.filter((obra) => obra.categoria === filtro)
 	return obras
 }
@@ -35,88 +39,137 @@ function agrupar(obras) {
 	const grupos = []
 	const indice = new Map()
 	for (const obra of obras) {
-		if (!indice.has(obra.serie)) {
-			indice.set(obra.serie, grupos.length)
-			grupos.push({ nombre: obra.serie, obras: [] })
+		if (!indice.has(obra.proyecto)) {
+			indice.set(obra.proyecto, grupos.length)
+			grupos.push({ nombre: obra.proyecto, obras: [] })
 		}
-		grupos[indice.get(obra.serie)].obras.push(obra)
+		grupos[indice.get(obra.proyecto)].obras.push(obra)
 	}
 	return grupos
 }
 
 function textoContador(cantidad) {
-	if (cantidad === 1) return '1 obra'
-	return `${cantidad} obras`
+	return cantidad === 1 ? '1 obra' : `${cantidad} obras`
 }
 
-function Ficha({ obra }) {
-	const estado = ESTADOS[obra.estado]
-	const meta = metaDe(obra)
-	return (
-		<div className="obra-ficha">
-			<div className="obra-ficha__fila">
-				<div>
-					<p className="obra-ficha__titulo">{obra.titulo}</p>
-					{meta && <p className="obra-ficha__meta">{meta}</p>}
-				</div>
-				<div className="obra-ficha__estado">
-					{estado && (
-						<p className={estado.tenue ? 'obra-ficha__meta' : undefined}>
-							{estado.marca && <span aria-hidden="true">{estado.marca}</span>}
-							{estado.texto}
-						</p>
-					)}
-					<p>
-						Ver obra <span className="arrow" aria-hidden="true">→</span>
-					</p>
-				</div>
-			</div>
-		</div>
-	)
+function cantidadDeColumnas(total, ancha) {
+	if (total <= 6) return 2
+	if (total <= 15) return 3
+	return ancha ? 4 : 3
 }
 
-function Tarjeta({ obra, prioridad = false }) {
+// Cada obra va a la columna más corta; así ninguna columna queda con un hueco grande al final.
+function repartir(obras, cantidad) {
+	const columnas = COLUMNAS[cantidad].map((posicion, indice) => {
+		const [desde, hasta] = posicion.split('/').map(Number)
+		const ancho = (hasta - desde) * COLUMNA + (hasta - desde - 1) * SEPARACION
+		return { posicion, ancho, alto: cantidad === 2 && indice === 1 ? DESFASAJE : 0, obras: [] }
+	})
+	obras.forEach((obra, orden) => {
+		const destino = columnas.reduce((menor, columna) => (columna.alto < menor.alto ? columna : menor))
+		const proporcion = obra.imagen ? obra.imagen.alto / obra.imagen.ancho : 1
+		destino.alto += (destino.obras.length ? ENTRE_OBRAS : 0) + destino.ancho * proporcion + PIE
+		destino.obras.push({ obra, orden })
+	})
+	return columnas
+}
+
+function Tarjeta({ obra, orden, sizes, prioridad }) {
+	const imagenRef = useRef(null)
+	const [cargada, setCargada] = useState(false)
+	const meta = [obra.proyecto, obra.anio].filter(Boolean).join(' · ')
+	const imagen = obra.imagen
+
+	useEffect(() => {
+		if (imagenRef.current?.complete) setCargada(true)
+	}, [])
+
 	return (
-		<li>
+		<article className="galeria-item" style={{ '--orden': orden }}>
 			<a className="galeria-obra" href={`/obras/${obra.slug}`}>
-				<div className="galeria-obra__marco">
-					{obra.imagen && (
+				{imagen && (
+					<span
+						className="lqip lqip--natural galeria-obra__marco"
+						style={{
+							'--dominante': imagen.dominante || undefined,
+							'--lqip': imagen.lqip ? `url("${imagen.lqip}")` : undefined,
+							maxWidth: `${imagen.ancho}px`,
+						}}
+					>
 						<img
-							src={obra.imagen.src}
-							srcSet={obra.imagen.srcset}
-							sizes="(min-width: 64rem) 22vw, (min-width: 48rem) 46vw, 92vw"
-							alt={obra.imagen.alt || obra.titulo}
-							width={obra.imagen.ancho}
-							height={obra.imagen.alto}
+							ref={imagenRef}
+							src={imagen.src}
+							srcSet={imagen.srcset}
+							sizes={sizes}
+							alt={imagen.alt || obra.titulo}
+							width={imagen.ancho}
+							height={imagen.alto}
 							loading={prioridad ? 'eager' : 'lazy'}
 							fetchPriority={prioridad ? 'high' : 'auto'}
 							decoding="async"
-							className="galeria-obra__img"
+							data-nitida=""
+							className={cargada ? 'is-nitida' : undefined}
+							style={{ viewTransitionName: `obra-${obra.slug}` }}
+							onLoad={() => setCargada(true)}
+							onError={() => setCargada(true)}
 						/>
-					)}
-				</div>
-				<Ficha obra={obra} />
+					</span>
+				)}
+				<h2 className="galeria-obra__titulo">
+					<span className="titulo-obra">{obra.titulo}</span>
+					<span className="galeria-obra__flecha" aria-hidden="true">
+						→
+					</span>
+				</h2>
+				{meta && <p className="galeria-obra__meta">{meta}</p>}
 			</a>
-		</li>
+		</article>
 	)
 }
 
-function Muro({ obras, prioridadInicial = false }) {
+function Muro({ obras, columnas, prioridadInicial = false }) {
+	const distribucion = repartir(obras, columnas)
+	const sizes =
+		columnas === 2
+			? '(min-width: 64rem) min(46vw, 830px), 100vw'
+			: columnas === 3
+				? '(min-width: 64rem) min(31vw, 540px), 50vw'
+				: '(min-width: 64rem) min(23vw, 400px), 50vw'
 	return (
-		<ul className="galeria-muro">
-			{obras.map((obra, indice) => (
-				<Tarjeta key={obra.slug} obra={obra} prioridad={prioridadInicial && indice === 0} />
+		<div className={`galeria-muro galeria-muro--${columnas}${obras.length > 6 ? ' galeria-muro--densa' : ''}`}>
+			{distribucion.map((columna) => (
+				<div className="galeria-columna" key={columna.posicion} style={{ '--columna': columna.posicion }}>
+					{columna.obras.map(({ obra, orden }) => (
+						<Tarjeta
+							key={obra.slug}
+							obra={obra}
+							orden={orden}
+							sizes={sizes}
+							prioridad={prioridadInicial && orden < 2}
+						/>
+					))}
+				</div>
 			))}
-		</ul>
+		</div>
 	)
 }
 
 export default function Galeria({ obras = [] }) {
 	const [filtro, setFiltro] = useState('todas')
 	const [cambiando, setCambiando] = useState(false)
+	const [ancha, setAncha] = useState(false)
 	const espera = useRef(0)
 
 	useEffect(() => () => window.clearTimeout(espera.current), [])
+
+	// Las cuatro columnas solo aparecen con más de 15 obras y en pantallas de 1440 px o más.
+	useEffect(() => {
+		const consulta = window.matchMedia('(min-width: 90rem)')
+		const actualizar = () => setAncha(consulta.matches)
+		actualizar()
+		consulta.addEventListener('change', actualizar)
+		return () => consulta.removeEventListener('change', actualizar)
+	}, [])
 
 	function elegir(siguiente) {
 		if (siguiente === filtro) return
@@ -136,21 +189,17 @@ export default function Galeria({ obras = [] }) {
 
 	const tabs = pestanias(obras)
 	const visibles = filtrar(obras, filtro)
-	const grupos = filtro === 'series' ? agrupar(visibles) : []
+	const columnas = cantidadDeColumnas(visibles.length, ancha)
+	const grupos = filtro === 'proyectos' ? agrupar(visibles) : []
 
 	return (
-		<div>
-			{tabs.length > 0 && (
+		<div className="galeria">
 			<div className="galeria-barra">
-				<div className="galeria-tabs" role="tablist" aria-label="Filtrar obras">
-					{tabs.map((tab, index) => (
-						<span key={tab.id} className="galeria-par">
-							{index > 0 && (
-								<span className="galeria-punto" aria-hidden="true">
-									·
-								</span>
-							)}
+				{tabs.length > 0 && (
+					<div className="galeria-tabs" role="tablist" aria-label="Filtrar obras">
+						{tabs.map((tab) => (
 							<button
+								key={tab.id}
 								type="button"
 								role="tab"
 								className="galeria-tab"
@@ -159,32 +208,28 @@ export default function Galeria({ obras = [] }) {
 							>
 								{tab.label}
 							</button>
-						</span>
-					))}
-				</div>
-				<span className="galeria-barra__linea" aria-hidden="true" />
-				<p className="label galeria-barra__cuenta" aria-live="polite">
+						))}
+					</div>
+				)}
+				<p className="galeria-cuenta" aria-live="polite">
 					{textoContador(visibles.length)}
 				</p>
 			</div>
-			)}
 
-			<div
-				className={['galeria-resultados', cambiando && 'is-cambiando', tabs.length > 0 && 'mt-10']
-					.filter(Boolean)
-					.join(' ')}
-			>
-				{visibles.length === 0 && (
-					<p className="obra-ficha__vacia">No hay obras en esta selección.</p>
-				)}
-				{filtro === 'series'
+			<div className={cambiando ? 'galeria-resultados is-cambiando' : 'galeria-resultados'}>
+				{visibles.length === 0 && <p className="galeria-vacia">No hay obras en esta selección.</p>}
+				{filtro === 'proyectos'
 					? grupos.map((grupo, indice) => (
-							<section key={grupo.nombre} className="mb-14">
-								<h2 className="galeria-obra__serie">{grupo.nombre}</h2>
-								<Muro obras={grupo.obras} prioridadInicial={indice === 0} />
+							<section key={grupo.nombre} className="galeria-grupo">
+								<h2 className="galeria-grupo__titulo">{grupo.nombre}</h2>
+								<Muro
+									obras={grupo.obras}
+									columnas={cantidadDeColumnas(grupo.obras.length, ancha)}
+									prioridadInicial={indice === 0}
+								/>
 							</section>
 						))
-					: <Muro obras={visibles} prioridadInicial />}
+					: visibles.length > 0 && <Muro obras={visibles} columnas={columnas} prioridadInicial />}
 			</div>
 		</div>
 	)

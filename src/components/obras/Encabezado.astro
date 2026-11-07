@@ -2,7 +2,32 @@
 const { bajada } = Astro.props
 ---
 
-<header class="fade-in px-6 pt-16 lg:px-10 lg:pt-24">
-	<h1 class="page-title">Obras / Galería</h1>
-	{bajada && <p class="mt-6 max-w-3xl text-base leading-relaxed md:text-lg">{bajada}</p>}
+<header class="encabezado contenedor grilla fade-in">
+	<h1 class="page-title encabezado__titulo">Obras</h1>
+	{bajada && <p class="encabezado__bajada">{bajada}</p>}
 </header>
+
+<style>
+	.encabezado {
+		row-gap: 1.25rem;
+		padding-top: clamp(2.5rem, 6vw, 4.5rem);
+	}
+
+	.encabezado__titulo,
+	.encabezado__bajada {
+		grid-column: 1 / -1;
+	}
+
+	.encabezado__bajada {
+		max-width: 36rem;
+		color: var(--color-muted);
+		font-size: 1.0625rem;
+		line-height: 1.55;
+	}
+
+	@media (min-width: 64rem) {
+		.encabezado__bajada {
+			grid-column: 1 / 7;
+		}
+	}
+</style>
