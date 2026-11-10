@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import ModalVimeo from './ModalVimeo.jsx'
 
 const TABS = [
 	{ id: 'todos', label: 'Todos' },
@@ -31,30 +31,11 @@ function fuente(proyecto) {
 	return null
 }
 
-function embed(proyecto) {
-	const params = new URLSearchParams({
-		autoplay: '1',
-		title: '0',
-		byline: '0',
-		portrait: '0',
-	})
-	if (proyecto.vimeoHash) params.set('h', proyecto.vimeoHash)
-	return `https://player.vimeo.com/video/${proyecto.vimeoId}?${params}`
-}
-
 function IconoPlay() {
 	return (
 		<svg viewBox="0 0 48 48" aria-hidden="true">
 			<circle cx="24" cy="24" r="18" fill="none" stroke="currentColor" strokeWidth="1.5" />
 			<path d="M21 17.5 32 24 21 30.5Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
-		</svg>
-	)
-}
-
-function IconoCerrar() {
-	return (
-		<svg viewBox="0 0 24 24" aria-hidden="true">
-			<path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="1.25" />
 		</svg>
 	)
 }
@@ -134,29 +115,8 @@ export default function Listado({ proyectos = [] }) {
 	const [activo, setActivo] = useState(null)
 	const espera = useRef(0)
 	const origen = useRef(null)
-	const cerrarBtn = useRef(null)
 
 	useEffect(() => () => window.clearTimeout(espera.current), [])
-
-	useEffect(() => {
-		if (!activo) return undefined
-		const overflow = document.body.style.overflow
-		document.body.style.overflow = 'hidden'
-		cerrarBtn.current?.focus()
-
-		function tecla(event) {
-			if (event.key !== 'Escape') return
-			event.preventDefault()
-			setActivo(null)
-			origen.current?.focus()
-		}
-
-		window.addEventListener('keydown', tecla)
-		return () => {
-			document.body.style.overflow = overflow
-			window.removeEventListener('keydown', tecla)
-		}
-	}, [activo])
 
 	function elegir(siguiente) {
 		if (siguiente === filtro) return
@@ -188,33 +148,7 @@ export default function Listado({ proyectos = [] }) {
 	const { destacado, primera, siguientes } = separar(proyectos, filtro)
 	const hay = Boolean(destacado) || primera.length > 0
 
-	const modal = activo
-		? createPortal(
-				<div className="av-modal" role="dialog" aria-modal="true" aria-label={activo.titulo || 'Video'} onClick={cerrar}>
-					<button
-						ref={cerrarBtn}
-						type="button"
-						className="lightbox__btn lightbox__cerrar"
-						aria-label="Cerrar"
-						onClick={(event) => {
-							event.stopPropagation()
-							cerrar()
-						}}
-					>
-						<IconoCerrar />
-					</button>
-					<div className="av-modal__marco" onClick={(event) => event.stopPropagation()}>
-						<iframe
-							src={embed(activo)}
-							title={activo.titulo || 'Video'}
-							allow="autoplay; fullscreen; picture-in-picture"
-							allowFullScreen
-						/>
-					</div>
-				</div>,
-				document.body,
-			)
-		: null
+	const modal = <ModalVimeo proyecto={activo} onCerrar={cerrar} />
 
 	return (
 		<div>

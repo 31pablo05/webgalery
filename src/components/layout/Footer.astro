@@ -1,175 +1,193 @@
 ---
-import Trazo from './Trazo.astro';
+import Firma from './Firma.astro'
 
-const {
-	nombre = '',
-	subtitulo = '',
-	email = '',
-	ciudad = '',
-	instagram = '',
-	vimeo = '',
-	youtube = '',
-} = Astro.props;
+// El email se muestra solo si está configurado en Sanity.
+const { nombre = '', email = '', instagram = '', vimeo = '' } = Astro.props
 
 const redes = [
-	{ href: instagram, label: 'Instagram' },
-	{ href: vimeo, label: 'Vimeo' },
-	{ href: youtube, label: 'YouTube' },
-].filter((item) => item.href);
+	{ href: instagram, label: 'Instagram', icono: 'instagram' },
+	{ href: vimeo, label: 'Vimeo', icono: 'vimeo' },
+].filter((item) => item.href)
 
-const secciones = [
-	{ href: '/obras', label: 'Obras' },
-	{ href: '/audiovisual', label: 'Audiovisual' },
-	{ href: '/sobre-mi', label: 'Sobre mí' },
-	{ href: '/contacto', label: 'Contacto' },
-];
-
-const anio = new Date().getFullYear();
+const anio = new Date().getFullYear()
+const firmante = nombre || 'Celia Gómez Perea'
 ---
 
-<footer class="site-footer">
-	<Trazo />
-	<div class="site-footer__inner contenedor grilla">
-		<div class="site-footer__marca">
-			{nombre && (
-				<a class="site-footer__nombre" href="/">
-					{nombre}
-				</a>
-			)}
-			{subtitulo && <p class="site-footer__rol">{subtitulo}</p>}
-		</div>
-
-		<nav class="site-footer__fila" aria-label="Secciones del sitio">
-			{secciones.map((item) => (
-				<a class="site-footer__link" href={item.href}>
-					{item.label}
-				</a>
-			))}
-		</nav>
+<footer class="site-footer ctx-azul ctx-azul--profundo textura">
+	<div class="site-footer__inner contenedor">
+		<a class="site-footer__marca" href="/" aria-label={`${firmante}, inicio`}>
+			<Firma />
+		</a>
 
 		{
-			(redes.length > 0 || email || ciudad) && (
-				<div class="site-footer__fila site-footer__fila--redes">
-					{redes.map((item) => (
-						<a class="site-footer__link" href={item.href} target="_blank" rel="noopener noreferrer">
-							{item.label}
-							<span class="site-footer__externo" aria-hidden="true">
-								↗
-							</span>
-							<span class="sr-only"> (se abre en otra pestaña)</span>
-						</a>
-					))}
-					{email && (
-						<a class="site-footer__link" href={`mailto:${email}`}>
-							{email}
-						</a>
-					)}
-					{ciudad && <span class="site-footer__dato">{ciudad}</span>}
-				</div>
+			email && (
+				<a class="site-footer__dato site-footer__email" href={`mailto:${email}`}>
+					<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<rect x="3" y="5.5" width="18" height="13" rx="0.5" />
+						<path d="m3.5 6 8.5 7 8.5-7" />
+					</svg>
+					{email}
+				</a>
 			)
 		}
 
-		<p class="site-footer__copia">© {anio}{nombre && ` ${nombre}`}</p>
+		{
+			redes.length > 0 && (
+				<ul class="site-footer__redes">
+					{redes.map((item) => (
+						<li>
+							<a class="site-footer__red" href={item.href} target="_blank" rel="noopener noreferrer" aria-label={`${item.label} (se abre en otra pestaña)`}>
+								{item.icono === 'instagram' ? (
+									<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+										<rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
+										<circle cx="12" cy="12" r="4" />
+										<circle cx="17.2" cy="6.8" r="0.6" />
+									</svg>
+								) : (
+									<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+										<path d="M3 8.6c.9-.7 1.7-1.3 2.4-1.8 1.4-1 2.5-1.2 3.2-.3.8 1 .9 2.9 1.5 5.3.5 2 .9 3 1.5 3 .5 0 1.4-1.1 2.6-3.2 1.1-2 .4-3.1-1-2.5.6-2.9 4.2-4 5.8-2.9 1.5 1.1 1.3 3.9-1.2 7.8-2.4 3.8-4.4 5.7-6 5.7-1.4 0-2.3-1.6-3-4.4-.7-2.6-1.1-5.2-2-5.2-.3 0-1 .4-2.2 1.3" />
+									</svg>
+								)}
+							</a>
+						</li>
+					))}
+				</ul>
+			)
+		}
+
+		<div class="site-footer__cierre">
+			<p class="site-footer__dominio">celiagomezperea.com</p>
+			<p class="site-footer__copia">© {anio} {firmante}</p>
+		</div>
 	</div>
 </footer>
 
 <style>
 	.site-footer {
-		padding-bottom: 2.5rem;
-		color: var(--color-ink);
+		margin-top: 0;
+		padding-block: 2.5rem;
 	}
 
 	.site-footer__inner {
-		row-gap: 1.75rem;
-		align-items: baseline;
+		display: grid;
+		gap: 1.75rem;
+		justify-items: start;
 	}
 
-	.site-footer__marca,
-	.site-footer__fila,
-	.site-footer__copia {
-		grid-column: 1 / -1;
+	.site-footer__marca {
+		display: block;
+		width: 6.5rem;
+		color: var(--blanco-calido);
 	}
 
-	.site-footer__nombre {
-		color: inherit;
-		font-family: var(--font-display);
-		font-size: 1.375rem;
-		font-weight: 500;
-		line-height: 1.2;
-		letter-spacing: -0.015em;
-		text-decoration: none;
-	}
-
-	.site-footer__fila {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75rem 1.75rem;
-	}
-
-	.site-footer__link,
-	.site-footer__dato {
+	.site-footer__dato,
+	.site-footer__red {
 		position: relative;
 		display: inline-flex;
-		align-items: baseline;
-		gap: 0.3rem;
-		color: var(--color-ink);
+		align-items: center;
+		gap: 0.75rem;
+		min-height: 2.75rem;
+		color: var(--blanco-calido);
 		font-size: 0.9375rem;
-		line-height: 1.4;
 		text-decoration: none;
 		overflow-wrap: anywhere;
 	}
 
-	.site-footer__rol {
-		margin-top: 0.25rem;
-		font-size: 0.9375rem;
+	.site-footer svg {
+		flex: none;
+		width: 1.35rem;
+		height: 1.35rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
 	}
 
-	.site-footer__rol,
-	.site-footer__dato,
-	.site-footer__externo,
-	.site-footer__copia {
-		color: var(--color-muted);
+	.site-footer__email svg {
+		color: var(--dorado);
 	}
 
-	.site-footer__link::before {
-		content: '';
-		position: absolute;
-		inset: -0.6rem -0.4rem;
+	.site-footer__redes {
+		display: flex;
+		gap: 0.75rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
 	}
 
-	.site-footer__link:hover {
-		text-decoration: underline;
-		text-decoration-thickness: 1px;
-		text-underline-offset: 0.25em;
+	.site-footer__red {
+		justify-content: center;
+		min-width: 2.75rem;
+		transition: color 0.3s var(--ease);
 	}
 
-	.site-footer__copia {
+	.site-footer__red:hover,
+	.site-footer__dato:hover {
+		color: var(--dorado);
+	}
+
+	.site-footer__cierre {
+		display: grid;
+		gap: 0.35rem;
+	}
+
+	.site-footer__dominio {
+		font-family: var(--font-ui);
 		font-size: 0.8125rem;
+		font-weight: 500;
+		letter-spacing: 0.28em;
+		text-transform: uppercase;
 	}
 
-	.site-footer__nombre:focus-visible,
-	.site-footer__link:focus-visible {
-		outline: 1px solid var(--color-ink);
+	.site-footer__copia {
+		color: var(--azul-bruma);
+		font-size: 0.875rem;
+	}
+
+	.site-footer__marca:focus-visible,
+	.site-footer__dato:focus-visible,
+	.site-footer__red:focus-visible {
+		outline: 1px solid currentColor;
 		outline-offset: 4px;
 	}
 
-	/* Escritorio: todo en una fila, alineado a la grilla. */
+	/* Escritorio: todo en una fila, separado por líneas doradas finas, como la maqueta. */
 	@media (min-width: 64rem) {
+		.site-footer {
+			padding-block: 2.25rem;
+		}
+
+		.site-footer__inner {
+			display: flex;
+			align-items: center;
+			gap: 0;
+		}
+
 		.site-footer__marca {
-			grid-column: 1 / 4;
+			width: 7rem;
+			margin-right: auto;
 		}
 
-		.site-footer__fila {
-			grid-column: 4 / 9;
+		.site-footer__inner > * + * {
+			padding-left: 2.5rem;
+			margin-left: 2.5rem;
+			border-left: 1px solid rgb(212 161 78 / 0.55);
 		}
 
-		.site-footer__fila--redes {
-			grid-column: 9 / 13;
-			justify-content: flex-end;
+		.site-footer__inner > .site-footer__marca + * {
+			margin-left: 0;
 		}
 
-		.site-footer__copia {
-			margin-top: 1rem;
+		.site-footer__cierre {
+			justify-items: end;
+			text-align: right;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.site-footer__red {
+			transition: none;
 		}
 	}
 </style>

@@ -1,88 +1,145 @@
 ---
-const { nombre = '', instagram = '', vimeo = '' } = Astro.props;
+import Firma from './Firma.astro'
+import { rutas } from '../../lib/rutas.js'
 
+// disciplinas: [{ nombre, href }] para el desplegable "Obra". heroAzul: la página empieza con una banda azul.
+const { disciplinas = [], instagram = '', vimeo = '', heroAzul = false } = Astro.props
+
+const pathname = Astro.url.pathname.replace(/\/+$/, '') || '/'
+const enSeccion = (base) => pathname === base || pathname.startsWith(`${base}/`)
+
+// La sección activa sale de la URL real, no del enlace (algunos enlaces son provisorios hasta la Etapa 3).
 const nav = [
-	{ href: '/obras', label: 'Obras' },
-	{ href: '/audiovisual', label: 'Audiovisual' },
-	{ href: '/sobre-mi', label: 'Sobre mí' },
-	{ href: '/contacto', label: 'Contacto' },
-];
+	{ id: 'inicio', href: rutas.inicio, label: 'Inicio', activo: pathname === '/' },
+	{ id: 'obra', href: rutas.obras, label: 'Obra', activo: enSeccion('/obras'), desplegable: disciplinas.length > 0 },
+	{ id: 'series', href: rutas.series, label: 'Series', activo: enSeccion('/series') },
+	{ id: 'audiovisual', href: rutas.audiovisual, label: 'Audiovisual', activo: enSeccion('/audiovisual') },
+	{ id: 'sobre', href: rutas.sobreMi, label: 'Sobre la artista', activo: enSeccion('/sobre-mi') },
+	{ id: 'contacto', href: rutas.contacto, label: 'Contacto', activo: enSeccion('/contacto') },
+]
+
+const subObra = [...disciplinas.map((item) => ({ href: item.href, label: item.nombre })), { href: rutas.obras, label: 'Todas las obras' }]
 
 const redes = [
 	{ href: instagram, label: 'Instagram' },
 	{ href: vimeo, label: 'Vimeo' },
-].filter((item) => item.href);
-
-const pathname = Astro.url.pathname.replace(/\/+$/, '') || '/';
-
-function isActive(href) {
-	return pathname === href || pathname.startsWith(`${href}/`);
-}
+].filter((item) => item.href)
 ---
 
-<header class="site-header" data-header>
+<header class:list={['site-header', heroAzul ? 'site-header--hero' : 'site-header--claro']} data-header>
 	<div class="site-header__bar contenedor">
-		<a class="brand" href="/">{nombre || 'Inicio'}</a>
+		<a class="marca" href="/" aria-label="Celia Gómez Perea, inicio">
+			<Firma class="marca__firma" />
+		</a>
+		<span class="marca__linea" aria-hidden="true"></span>
 
 		<nav class="site-nav" aria-label="Principal">
-			<ul class="site-nav__list">
+			<ul class="site-nav__lista">
 				{
-					nav.map((item) => (
-						<li>
-							<a
-								href={item.href}
-								class:list={['site-nav__link', { 'is-active': isActive(item.href) }]}
-								aria-current={isActive(item.href) ? 'page' : undefined}
-							>
-								{item.label}
-							</a>
-						</li>
-					))
+					nav.map((item) =>
+						item.desplegable ? (
+							<li class="desplegable" data-desplegable>
+								<button
+									type="button"
+									class:list={['site-nav__link', 'desplegable__boton', { 'is-active': item.activo }]}
+									aria-expanded="false"
+									aria-controls="submenu-obra"
+									data-desplegable-boton
+								>
+									{item.label}
+									<svg class="desplegable__chevron" viewBox="0 0 10 6" aria-hidden="true" focusable="false">
+										<path d="M1 1l4 4 4-4" />
+									</svg>
+								</button>
+								<ul id="submenu-obra" class="desplegable__menu" data-desplegable-menu hidden>
+									{subObra.map((sub) => (
+										<li>
+											<a class="desplegable__link" href={sub.href}>
+												{sub.label}
+											</a>
+										</li>
+									))}
+								</ul>
+							</li>
+						) : (
+							<li>
+								<a
+									href={item.href}
+									class:list={['site-nav__link', { 'is-active': item.activo }]}
+									aria-current={item.activo ? 'page' : undefined}
+								>
+									{item.label}
+								</a>
+							</li>
+						),
+					)
 				}
 			</ul>
 		</nav>
 
-		<button
-			class="menu-toggle"
-			type="button"
-			data-menu-toggle
-			aria-expanded="false"
-			aria-controls="site-menu"
-		>
+		<button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="site-menu">
 			<span data-menu-texto>Menú</span>
 		</button>
 	</div>
 
-	<div id="site-menu" class="menu-panel" data-menu-panel hidden role="dialog" aria-modal="true" aria-label="Menú">
+	<div
+		id="site-menu"
+		class="menu-panel ctx-azul ctx-azul--profundo textura"
+		data-menu-panel
+		hidden
+		role="dialog"
+		aria-modal="true"
+		aria-label="Menú"
+	>
 		<nav class="menu-panel__nav contenedor" aria-label="Secciones">
-			<ol class="menu-list">
+			<ul class="menu-lista">
 				{
-					[{ href: '/', label: 'Inicio' }, ...nav].map((item, index) => {
-						const activo = item.href === '/' ? pathname === '/' : isActive(item.href);
-						return (
-							<li>
+					nav.map((item) => (
+						<li>
+							{item.desplegable ? (
+								<>
+									<button
+										type="button"
+										class:list={['menu-link', 'menu-link--boton', { 'is-active': item.activo }]}
+										aria-expanded="false"
+										aria-controls="menu-obra"
+										data-menu-obra
+									>
+										{item.label}
+										<svg class="desplegable__chevron" viewBox="0 0 10 6" aria-hidden="true" focusable="false">
+											<path d="M1 1l4 4 4-4" />
+										</svg>
+									</button>
+									<ul id="menu-obra" class="menu-sub" hidden>
+										{subObra.map((sub) => (
+											<li>
+												<a class="menu-sub__link" href={sub.href}>
+													{sub.label}
+												</a>
+											</li>
+										))}
+									</ul>
+								</>
+							) : (
 								<a
 									href={item.href}
-									class:list={['menu-link', { 'is-active': activo }]}
-									aria-current={activo ? 'page' : undefined}
+									class:list={['menu-link', { 'is-active': item.activo }]}
+									aria-current={item.activo ? 'page' : undefined}
 								>
-									<span class="menu-link__num" aria-hidden="true">
-										{String(index + 1).padStart(2, '0')}
-									</span>
-									<span class="menu-link__texto">{item.label}</span>
+									{item.label}
 								</a>
-							</li>
-						);
-					})
+							)}
+						</li>
+					))
 				}
-			</ol>
+			</ul>
 			{
 				redes.length > 0 && (
 					<ul class="menu-redes">
 						{redes.map((item) => (
 							<li>
-								<a class="enlace" href={item.href} target="_blank" rel="noopener noreferrer">
-									{item.label} <span aria-hidden="true">↗</span>
+								<a class="enlace-caps" href={item.href} target="_blank" rel="noopener noreferrer">
+									{item.label}
 									<span class="sr-only">(se abre en otra pestaña)</span>
 								</a>
 							</li>
@@ -95,51 +152,141 @@ function isActive(href) {
 </header>
 
 <script>
-	const header = document.querySelector('[data-header]');
+	const header = document.querySelector('[data-header]')
 
 	if (header) {
-		const toggle = header.querySelector('[data-menu-toggle]');
-		const texto = header.querySelector('[data-menu-texto]');
-		const panel = header.querySelector('[data-menu-panel]');
-		const desktop = window.matchMedia('(min-width: 64rem)');
+		const toggle = header.querySelector('[data-menu-toggle]')
+		const texto = header.querySelector('[data-menu-texto]')
+		const panel = header.querySelector('[data-menu-panel]')
+		const desktop = window.matchMedia('(min-width: 64rem)')
 
 		const setOpen = (open) => {
-			if (!toggle || !panel) return;
-			toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-			if (texto) texto.textContent = open ? 'Cerrar' : 'Menú';
-			panel.hidden = !open;
-			document.body.classList.toggle('menu-open', open);
-			header.classList.toggle('is-open', open);
-		};
+			if (!toggle || !panel) return
+			toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+			if (texto) texto.textContent = open ? 'Cerrar' : 'Menú'
+			panel.hidden = !open
+			document.body.classList.toggle('menu-open', open)
+			header.classList.toggle('is-open', open)
+		}
 
-		toggle?.addEventListener('click', () => {
-			setOpen(toggle.getAttribute('aria-expanded') !== 'true');
-		});
+		toggle?.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'))
+		panel?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setOpen(false)))
+		desktop.addEventListener('change', (event) => {
+			if (event.matches) setOpen(false)
+		})
 
-		panel?.querySelectorAll('a').forEach((link) => {
-			link.addEventListener('click', () => setOpen(false));
-		});
+		// "Obra" dentro del panel móvil: se despliega en el lugar.
+		const menuObra = header.querySelector('[data-menu-obra]')
+		menuObra?.addEventListener('click', () => {
+			const abierto = menuObra.getAttribute('aria-expanded') === 'true'
+			menuObra.setAttribute('aria-expanded', abierto ? 'false' : 'true')
+			const lista = document.getElementById(menuObra.getAttribute('aria-controls'))
+			if (lista) lista.hidden = abierto
+		})
+
+		// Desplegable "Obra" en escritorio: hover, click y teclado (Enter, Escape y flechas).
+		const desplegable = header.querySelector('[data-desplegable]')
+		const boton = desplegable?.querySelector('[data-desplegable-boton]')
+		const menu = desplegable?.querySelector('[data-desplegable-menu]')
+		const links = menu ? [...menu.querySelectorAll('a')] : []
+		let cierre = 0
+
+		const abrirMenu = (abrir) => {
+			if (!boton || !menu) return
+			window.clearTimeout(cierre)
+			boton.setAttribute('aria-expanded', abrir ? 'true' : 'false')
+			menu.hidden = !abrir
+		}
+		const abierto = () => boton?.getAttribute('aria-expanded') === 'true'
+		const enfocar = (indice) => links[(indice + links.length) % links.length]?.focus()
+
+		if (desplegable && boton && menu) {
+			const hover = window.matchMedia('(hover: hover) and (pointer: fine)')
+			desplegable.addEventListener('mouseenter', () => hover.matches && abrirMenu(true))
+			desplegable.addEventListener('mouseleave', () => {
+				if (!hover.matches) return
+				cierre = window.setTimeout(() => abrirMenu(false), 180)
+			})
+			boton.addEventListener('click', () => abrirMenu(!abierto()))
+			boton.addEventListener('keydown', (event) => {
+				if (event.key === 'ArrowDown') {
+					event.preventDefault()
+					abrirMenu(true)
+					enfocar(0)
+				} else if (event.key === 'ArrowUp') {
+					event.preventDefault()
+					abrirMenu(true)
+					enfocar(links.length - 1)
+				}
+			})
+			menu.addEventListener('keydown', (event) => {
+				const actual = links.indexOf(document.activeElement)
+				if (event.key === 'ArrowDown') {
+					event.preventDefault()
+					enfocar(actual + 1)
+				} else if (event.key === 'ArrowUp') {
+					event.preventDefault()
+					enfocar(actual - 1)
+				} else if (event.key === 'Home') {
+					event.preventDefault()
+					enfocar(0)
+				} else if (event.key === 'End') {
+					event.preventDefault()
+					enfocar(links.length - 1)
+				}
+			})
+			desplegable.addEventListener('focusout', (event) => {
+				if (!desplegable.contains(event.relatedTarget)) abrirMenu(false)
+			})
+			document.addEventListener('click', (event) => {
+				if (abierto() && !desplegable.contains(event.target)) abrirMenu(false)
+			})
+		}
 
 		document.addEventListener('keydown', (event) => {
-			if (event.key === 'Escape') setOpen(false);
-		});
+			if (event.key !== 'Escape') return
+			if (abierto()) {
+				abrirMenu(false)
+				boton?.focus()
+			}
+			if (toggle?.getAttribute('aria-expanded') === 'true') {
+				setOpen(false)
+				toggle.focus()
+			}
+		})
 
-		desktop.addEventListener('change', (event) => {
-			if (event.matches) setOpen(false);
-		});
-
-		// Arriba de todo el encabezado es transparente; pasados los 80 px toma fondo y se achica.
-		const marcar = () => header.classList.toggle('is-scrolled', window.scrollY > 80);
-		marcar();
-		window.addEventListener('scroll', marcar, { passive: true });
+		// Sobre el hero el encabezado es transparente; pasados los 80 px toma fondo.
+		const marcar = () => header.classList.toggle('is-scrolled', window.scrollY > 80)
+		marcar()
+		window.addEventListener('scroll', marcar, { passive: true })
 	}
 </script>
 
 <style>
 	.site-header {
+		--alto-barra: 5.25rem;
+		--ancho-firma: 6rem;
 		position: sticky;
 		top: 0;
 		z-index: 40;
+		color: var(--color-ink);
+	}
+
+	/* Sobre el hero azul: fijo y transparente, con texto blanco cálido. */
+	.site-header--hero {
+		--color-ink: var(--blanco-calido);
+		--color-line: rgb(155 188 198 / 0.3);
+		--fondo-menu: var(--azul-profundo);
+		position: fixed;
+		inset-inline: 0;
+	}
+
+	.site-header--claro {
+		--fondo-menu: var(--blanco-calido);
+	}
+
+	.site-header.site-header--claro::before {
+		background-color: var(--blanco-calido);
 	}
 
 	.site-header__bar {
@@ -147,13 +294,12 @@ function isActive(href) {
 		z-index: 2;
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: 1.5rem;
-		height: 4.5rem;
+		height: var(--alto-barra);
 		transition: height 0.4s var(--ease);
 	}
 
-	/* La línea inferior y el fondo viven en un pseudo-elemento para que ocupen todo el ancho. */
+	/* Fondo y línea inferior en un pseudo-elemento, a todo el ancho. */
 	.site-header::before {
 		content: '';
 		position: absolute;
@@ -166,80 +312,176 @@ function isActive(href) {
 			border-color 0.4s var(--ease);
 	}
 
-	.site-header.is-scrolled::before {
-		border-bottom-color: var(--color-line);
-		background-color: color-mix(in srgb, var(--color-bg) 78%, transparent);
+	.site-header--hero.is-scrolled::before {
+		border-bottom-color: rgb(212 161 78 / 0.35);
+		background-color: rgb(18 57 79 / 0.9);
 		backdrop-filter: blur(14px);
 		-webkit-backdrop-filter: blur(14px);
 	}
 
-	.site-header.is-scrolled .site-header__bar {
-		height: 3.75rem;
+	.site-header--claro.is-scrolled::before {
+		border-bottom-color: var(--color-line);
+		background-color: rgb(250 247 243 / 0.94);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
+	}
+
+	.site-header.is-scrolled {
+		--alto-barra: 4.25rem;
+		--ancho-firma: 4.5rem;
+	}
+
+	/* Con el panel abierto, la barra queda sobre el azul del menú. */
+	.site-header.is-open {
+		--color-ink: var(--blanco-calido);
 	}
 
 	.site-header.is-open::before {
-		background-color: var(--color-bg);
+		background-color: transparent;
 		border-bottom-color: transparent;
+		backdrop-filter: none;
 	}
 
-	.brand {
-		min-width: 0;
+	.marca {
+		position: relative;
+		display: block;
+		flex: none;
+		width: var(--ancho-firma);
 		color: var(--color-ink);
-		font-family: var(--font-display);
-		font-size: 1.125rem;
-		font-weight: 500;
-		line-height: 1.2;
-		letter-spacing: -0.01em;
-		text-decoration: none;
+		transition: width 0.4s var(--ease);
+	}
+
+	.marca__linea {
+		display: none;
+		flex: none;
+		width: 1px;
+		height: 2.75rem;
+		background-color: var(--dorado);
+		opacity: 0.8;
 	}
 
 	.site-nav {
 		display: none;
 	}
 
-	.site-nav__list,
-	.menu-list,
+	.site-nav__lista,
+	.desplegable__menu,
+	.menu-lista,
+	.menu-sub,
 	.menu-redes {
 		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
 
-	.site-nav__list {
+	.site-nav__lista {
 		display: flex;
 		align-items: center;
-		gap: 2.25rem;
+		gap: clamp(1.5rem, 2.6vw, 2.75rem);
 	}
 
 	.site-nav__link {
 		position: relative;
 		display: inline-flex;
 		align-items: center;
+		gap: 0.45rem;
+		min-height: 2.75rem;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: none;
 		color: var(--color-ink);
-		font-size: 0.9375rem;
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
 		line-height: 1;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
 		text-decoration: none;
 		white-space: nowrap;
-		transition: opacity 0.3s var(--ease);
+		cursor: pointer;
 	}
 
-	.site-nav__link::before {
+	/* Página activa y hover: línea dorada fina debajo. */
+	.site-nav__link::after {
 		content: '';
 		position: absolute;
-		inset: -0.9rem -0.5rem;
+		left: 0;
+		right: 0.2em;
+		bottom: 0.55rem;
+		height: 1px;
+		background-color: var(--dorado);
+		transform: scaleX(0);
+		transform-origin: left center;
+		transition: transform 0.4s var(--ease);
 	}
 
-	/* Sección activa: un punto chico antes del nombre. */
-	.site-nav__link.is-active::after {
-		content: '';
+	.site-nav__link.is-active::after,
+	.site-nav__link:hover::after,
+	.desplegable__boton[aria-expanded='true']::after {
+		transform: scaleX(1);
+	}
+
+	.desplegable {
+		position: relative;
+	}
+
+	.desplegable__chevron {
+		width: 0.6rem;
+		height: 0.4rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.2;
+		transition: transform 0.3s var(--ease);
+	}
+
+	[aria-expanded='true'] > .desplegable__chevron {
+		transform: rotate(180deg);
+	}
+
+	.desplegable__menu {
 		position: absolute;
-		top: 50%;
-		left: -0.75rem;
-		width: 0.3rem;
-		height: 0.3rem;
-		border-radius: 50%;
-		background-color: currentColor;
-		translate: 0 -50%;
+		top: 100%;
+		left: -1.25rem;
+		min-width: 14rem;
+		padding: 0.75rem 0;
+		border: 1px solid var(--color-line);
+		border-top: 1px solid var(--dorado);
+		background-color: var(--fondo-menu);
+		box-shadow: 0 18px 40px rgb(18 57 79 / 0.18);
+	}
+
+	.desplegable__menu[hidden] {
+		display: none;
+	}
+
+	.desplegable__link {
+		display: block;
+		padding: 0.7rem 1.25rem;
+		color: var(--color-ink);
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		text-decoration: none;
+		transition: color 0.3s var(--ease);
+	}
+
+	.desplegable__menu li:last-child {
+		margin-top: 0.4rem;
+		padding-top: 0.4rem;
+		border-top: 1px solid var(--color-line);
+	}
+
+	.desplegable__link:hover,
+	.desplegable__link:focus-visible {
+		color: var(--dorado);
+	}
+
+	.site-header--claro .desplegable__link:hover,
+	.site-header--claro .desplegable__link:focus-visible {
+		color: var(--dorado-oscuro);
 	}
 
 	.menu-toggle {
@@ -247,11 +489,16 @@ function isActive(href) {
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;
+		margin-left: auto;
 		padding: 0;
 		border: 0;
 		background: transparent;
 		color: var(--color-ink);
-		font-size: 0.9375rem;
+		font-family: var(--font-ui);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
 		cursor: pointer;
 	}
 
@@ -261,6 +508,7 @@ function isActive(href) {
 		inset: 0 -0.75rem;
 	}
 
+	/* Panel móvil: pantalla completa en azul profundo con textura. */
 	.menu-panel[hidden] {
 		display: none;
 	}
@@ -270,9 +518,8 @@ function isActive(href) {
 		inset: 0;
 		z-index: 1;
 		display: flex;
-		padding: 6rem 0 2.5rem;
+		padding: calc(var(--alto-barra) + 1.5rem) 0 2.5rem;
 		overflow-y: auto;
-		background-color: var(--color-bg);
 	}
 
 	.menu-panel__nav {
@@ -282,67 +529,102 @@ function isActive(href) {
 		gap: 3rem;
 	}
 
-	.menu-list li + li {
+	.menu-lista > li + li {
 		border-top: 1px solid var(--color-line);
 	}
 
 	.menu-link {
 		display: flex;
-		align-items: baseline;
-		gap: 1rem;
-		padding: 0.6rem 0;
-		color: var(--color-ink);
-		text-decoration: none;
-	}
-
-	.menu-link__num {
-		min-width: 1.5rem;
-		color: var(--color-muted);
-		font-size: 0.75rem;
+		align-items: center;
+		gap: 0.75rem;
+		width: 100%;
+		margin: 0;
+		padding: 0.55rem 0;
+		border: 0;
+		background: none;
+		color: var(--blanco-calido);
+		font-family: var(--font-display);
+		font-size: clamp(2rem, 9vw, 2.75rem);
 		font-weight: 500;
-		letter-spacing: 0.04em;
+		line-height: 1.15;
+		text-align: left;
+		text-decoration: none;
+		cursor: pointer;
 	}
 
-	.menu-link__texto {
-		font-family: var(--font-serif);
-		font-size: clamp(2.5rem, 11vw, 3.5rem);
-		font-style: italic;
-		line-height: 1.1;
+	.menu-link .desplegable__chevron {
+		width: 0.9rem;
+		height: 0.55rem;
+		stroke: var(--dorado);
 	}
 
-	.menu-link.is-active .menu-link__texto {
-		color: var(--color-muted);
+	.menu-link.is-active {
+		color: var(--dorado);
+	}
+
+	.menu-sub {
+		display: grid;
+		gap: 0.25rem;
+		padding: 0 0 1rem 0.25rem;
+	}
+
+	.menu-sub[hidden] {
+		display: none;
+	}
+
+	.menu-sub__link {
+		display: inline-flex;
+		align-items: center;
+		min-height: 2.75rem;
+		color: var(--azul-bruma);
+		font-family: var(--font-ui);
+		font-size: 0.875rem;
+		font-weight: 500;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		text-decoration: none;
 	}
 
 	.menu-redes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1rem 2rem;
+		gap: 0.5rem 2rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--dorado);
 	}
 
-	.brand:focus-visible,
+	.marca:focus-visible,
 	.site-nav__link:focus-visible,
+	.desplegable__link:focus-visible,
 	.menu-link:focus-visible,
+	.menu-sub__link:focus-visible,
 	.menu-toggle:focus-visible {
-		outline: 1px solid var(--color-ink);
+		outline: 1px solid currentColor;
 		outline-offset: 4px;
 	}
 
 	@media (min-width: 64rem) {
+		.site-header {
+			--alto-barra: 7rem;
+			--ancho-firma: 7.5rem;
+		}
+
+		.site-header.is-scrolled {
+			--alto-barra: 4.75rem;
+			--ancho-firma: 4.75rem;
+		}
+
 		.site-header__bar {
-			height: 5.5rem;
+			gap: clamp(1.5rem, 2.5vw, 2.5rem);
 		}
 
-		.site-header.is-scrolled .site-header__bar {
-			height: 4.25rem;
-		}
-
-		.brand {
-			font-size: 1.1875rem;
+		.marca__linea {
+			display: block;
 		}
 
 		.site-nav {
 			display: block;
+			margin-left: auto;
 		}
 
 		.menu-toggle,
@@ -352,21 +634,12 @@ function isActive(href) {
 		}
 	}
 
-	/* En hover, el resto de los enlaces baja su opacidad y el señalado queda pleno. */
-	@media (hover: hover) and (pointer: fine) {
-		.site-nav__list:hover .site-nav__link {
-			opacity: 0.45;
-		}
-
-		.site-nav__list:hover .site-nav__link:hover {
-			opacity: 1;
-		}
-	}
-
 	@media (prefers-reduced-motion: reduce) {
 		.site-header__bar,
 		.site-header::before,
-		.site-nav__link {
+		.marca,
+		.site-nav__link::after,
+		.desplegable__chevron {
 			transition: none;
 		}
 	}

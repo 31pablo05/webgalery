@@ -1,34 +1,77 @@
 @import "tailwindcss";
 
 /*
-  Dirección de arte: sala de proyección. Base oscura y texto hueso; el color lo ponen las obras.
-  Inter Tight en todo el sitio; Instrument Serif itálica solo para títulos de obra y frases destacadas.
-  Grilla estricta: contenedor de hasta 1680 px, 12 columnas en escritorio y 4 en móvil.
+  Dirección de arte: galería editorial oceánica.
+  Base clara (blanco cálido y marfil) para obra y lectura; bandas azules con textura para el hero, la serie
+  destacada, el audiovisual y el footer. El dorado solo en líneas finas, ornamentos e íconos.
+  Cormorant Garamond: titulares editoriales. Instrument Sans: menú, títulos de sección, botones, etiquetas.
+  DM Sans: textos.
 */
 :root {
-  color-scheme: dark;
-  --color-bg: #0f0f0e;
-  --color-surface: #1a1a19;
-  --color-ink: #efece6;
-  --color-muted: #8f8c86;
-  --color-line: #2a2927;
-  /* Fondo de lightbox y modal de video: un punto más profundo que la página. */
-  --color-dark: #080807;
+  color-scheme: light;
+
+  /* Paleta (CLAUDE.md) */
+  --azul-oceano: #154560;
+  --azul-profundo: #12394f;
+  --azul-medio: #28617a;
+  --azul-suave: #719daa;
+  --azul-bruma: #9bbcc6;
+  --blanco-calido: #faf7f3;
+  --marfil: #f2e9e0;
+  --tinta: #191919;
+  --dorado: #d4a14e;
+  --dorado-oscuro: #8a6420;
+  --gris: #666666;
+
+  /* Nombres que usan los componentes existentes: apuntan a la paleta nueva. */
+  --color-bg: var(--blanco-calido);
+  --color-surface: var(--marfil);
+  --color-ink: var(--tinta);
+  --color-muted: var(--gris);
+  --color-line: #ddd3c8;
+  /* Fondo de lightbox y modal de video: neutro, para que las obras conserven sus colores. */
+  --color-dark: #101314;
+  /* Acento según el fondo: dorado sobre azul, dorado oscuro sobre claro. */
+  --acento: var(--dorado);
+  --acento-texto: var(--dorado-oscuro);
+  --btn-borde: var(--tinta);
+
   --ancho-max: 1680px;
   --col-gap: 1rem;
-  --font-display: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
-  --gutter: 1.25rem;
-  /* Una sola medida entre secciones: 96 px en móvil, 160 px en escritorio. */
-  --seccion: 6rem;
+  --font-display: "Cormorant Garamond", "Cormorant", Georgia, "Times New Roman", serif;
+  --font-ui: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "DM Sans", "Helvetica Neue", Arial, sans-serif;
+  /* Compatibilidad: los títulos de obra que usaban la serif itálica pasan a Cormorant. */
+  --font-serif: var(--font-display);
+  --gutter: 1rem;
+  --seccion: 4.5rem;
+  /* Separación entre bloques del Inicio: denso y editorial, como la maqueta. */
+  --bloque: 2.5rem;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --radius: 0;
+
+  /*
+    Texturas procedurales (SVG feTurbulence): pigmento al agua y grano. Sin imágenes ni obras.
+    El pigmento usa tonos de la paleta; cada banda lo concentra en sus bordes con una máscara.
+  */
+  --textura-pigmento: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='720'%3E%3Cfilter id='a' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0045 0.009' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.443 0 0 0 0 0.616 0 0 0 0 0.667 2.2 0 0 0 -0.92'/%3E%3C/filter%3E%3Cfilter id='b' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006 0.004' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.2 0 0 0 0 0.28 0 2.4 0 0 -1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+  --textura-dorada: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='5' seed='21' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.83 0 0 0 0 0.63 0 0 0 0 0.31 4.5 0 0 0 -3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --textura-grano: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /*
+    Máscaras de borde irregular, como pigmento que se seca: la imagen se funde con el fondo.
+    Un rectángulo con el borde desplazado por ruido y desenfocado. Cada una deja un lado sin fundir.
+  */
+  --mascara-hero: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 600' preserveAspectRatio='none'%3E%3Cfilter id='m' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.03' numOctaves='3' seed='4'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='120' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeGaussianBlur stdDeviation='22'/%3E%3C/filter%3E%3Crect x='190' y='50' width='1000' height='500' fill='white' filter='url(%23m)'/%3E%3C/svg%3E");
+  --mascara-derecha: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 600' preserveAspectRatio='none'%3E%3Cfilter id='m' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03 0.012' numOctaves='3' seed='9'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeGaussianBlur stdDeviation='20'/%3E%3C/filter%3E%3Crect x='-200' y='-200' width='1040' height='1000' fill='white' filter='url(%23m)'/%3E%3C/svg%3E");
+  --mascara-izquierda: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 600' preserveAspectRatio='none'%3E%3Cfilter id='m' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03 0.012' numOctaves='3' seed='2'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeGaussianBlur stdDeviation='20'/%3E%3C/filter%3E%3Crect x='170' y='-200' width='1100' height='1000' fill='white' filter='url(%23m)'/%3E%3C/svg%3E");
+  --mascara-abajo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 1000' preserveAspectRatio='none'%3E%3Cfilter id='m' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02 0.012' numOctaves='3' seed='6'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeGaussianBlur stdDeviation='18'/%3E%3C/filter%3E%3Crect x='-200' y='-200' width='1000' height='1040' fill='white' filter='url(%23m)'/%3E%3C/svg%3E");
 }
 
 @media (min-width: 48rem) {
   :root {
     --gutter: 2rem;
+    --seccion: 5.5rem;
   }
 }
 
@@ -36,7 +79,8 @@
   :root {
     --gutter: 2.5rem;
     --col-gap: 1.5rem;
-    --seccion: 10rem;
+    --seccion: 6.5rem;
+    --bloque: 3.5rem;
   }
 }
 
@@ -62,14 +106,14 @@
     font-family: var(--font-body);
     font-size: 1rem;
     font-weight: 400;
-    line-height: 1.6;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
-    background-color: var(--color-ink);
-    color: var(--color-bg);
+    background-color: var(--azul-medio);
+    color: var(--blanco-calido);
   }
 
   img,
@@ -89,8 +133,8 @@
     margin: 0;
     max-width: 100%;
     font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.015em;
+    font-weight: 500;
+    letter-spacing: 0;
     overflow-wrap: break-word;
   }
 
@@ -132,60 +176,200 @@
   }
 }
 
-/* El único texto enorme del sitio es el nombre del hero: los títulos de página y sección son contenidos. */
+/* ——— Contextos de color: cada sección elige el suyo ——— */
+.ctx-claro,
+.ctx-marfil,
+.ctx-azul {
+  color: var(--color-ink);
+}
+
+.ctx-claro {
+  background-color: var(--blanco-calido);
+}
+
+.ctx-marfil {
+  background-color: var(--marfil);
+  --color-line: #d8cbbd;
+}
+
+.ctx-azul {
+  background-color: var(--azul-oceano);
+  --color-ink: var(--blanco-calido);
+  --color-muted: var(--azul-bruma);
+  --color-line: rgb(155 188 198 / 0.3);
+  --color-surface: var(--azul-profundo);
+  --acento-texto: var(--dorado);
+  --btn-borde: var(--dorado);
+}
+
+.ctx-azul--profundo {
+  background-color: var(--azul-profundo);
+}
+
+/*
+  Textura de las bandas azules: pigmento en los bordes y grano muy fino. Se dibuja detrás del contenido
+  (::before y ::after con z-index 0) y nunca encima de una imagen.
+*/
+.textura {
+  position: relative;
+  isolation: isolate;
+}
+
+.textura::before,
+.textura::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.textura::before {
+  background-image: var(--textura-dorada), var(--textura-pigmento);
+  background-size: 900px 900px, 720px 720px;
+  background-position: 12% 0, 0 0;
+  opacity: 0.55;
+  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 52%, #000 100%);
+  mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 52%, #000 100%);
+}
+
+.textura::after {
+  background-image: var(--textura-grano);
+  background-size: 220px 220px;
+  opacity: 0.07;
+  mix-blend-mode: soft-light;
+}
+
+/* Sin dorado (bandas chicas). */
+.textura--sutil::before {
+  background-image: var(--textura-pigmento);
+  background-size: 720px 720px;
+  opacity: 0.45;
+}
+
+/* ——— Tipografía ——— */
+
+/* Titular del hero: Cormorant en mayúsculas, entre 56 y 80 px en escritorio. */
+.t-hero {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(2.375rem, 4.6vw + 0.5rem, 5rem);
+  line-height: 1.02;
+  letter-spacing: 0.015em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+/* Nombres de series y frases destacadas. */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+}
+
+/* Títulos de sección: Instrument Sans en mayúsculas, 22 a 26 px, espaciado 0.18em. */
+.t-seccion {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: clamp(1.25rem, 0.9vw + 0.9rem, 1.625rem);
+  line-height: 1.25;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Texto: DM Sans, 16 a 17 px. */
+.t-texto {
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 0.2vw + 0.95rem, 1.0625rem);
+  line-height: 1.65;
+}
+
+.t-secundario {
+  color: var(--color-muted);
+}
+
+/* Compatibilidad con las páginas internas (se rediseñan en la Etapa 3). */
 .page-title {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 500;
   font-size: clamp(2.5rem, 4.4vw, 4rem);
   line-height: 1;
-  letter-spacing: -0.03em;
   color: inherit;
 }
 
 .titulo-seccion {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 500;
   font-size: clamp(2rem, 3.1vw, 3rem);
   line-height: 1.05;
-  letter-spacing: -0.025em;
 }
 
-/* Títulos de obra y frases destacadas. */
 .titulo-obra {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
   letter-spacing: 0;
 }
 
+/* Etiquetas: Instrument Sans, 12 px, mayúsculas, espaciado 0.2em. */
 .label {
   display: inline-block;
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   font-weight: 500;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   line-height: 1.4;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-muted);
 }
 
+.label--acento {
+  color: var(--acento-texto);
+}
+
+/* Ornamento: línea dorada fina junto a títulos de sección y bajo el título del hero. */
+.filete {
+  display: inline-block;
+  flex: none;
+  width: 3.5rem;
+  height: 1px;
+  background-color: var(--acento);
+}
+
+.filete--largo {
+  width: 4rem;
+}
+
+/* Título de sección con su filete: "SERIES DESTACADAS ——". */
+.encabezado-seccion {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* ——— Botones ——— */
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.9rem;
   margin: 0;
   min-height: 2.75rem;
-  padding: 0.85rem 1.4rem;
+  padding: 0.8rem 1.5rem;
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: transparent;
-  font-family: var(--font-body);
-  font-size: 0.875rem;
+  color: inherit;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color 0.35s var(--ease),
@@ -193,30 +377,32 @@
     border-color 0.35s var(--ease);
 }
 
-.btn-outline {
-  border-color: var(--color-ink);
-  color: var(--color-ink);
-}
-
-.btn-outline:hover {
-  background-color: var(--color-ink);
-  color: var(--color-bg);
-}
-
+/* Contorno de 1 px: dorado sobre azul, tinta sobre claro. Hover: relleno muy sutil. */
+.btn-contorno,
+.btn-outline,
 .btn-on-dark {
-  border-color: var(--color-ink);
+  border-color: var(--btn-borde);
   color: var(--color-ink);
 }
 
-.btn-solid {
-  border-color: var(--color-ink);
-  background-color: var(--color-ink);
-  color: var(--color-bg);
+.btn-contorno:hover,
+.btn-outline:hover,
+.btn-on-dark:hover {
+  background-color: color-mix(in srgb, var(--btn-borde) 10%, transparent);
 }
 
+/* Relleno: azul medio con texto blanco cálido (enviar formulario). */
+.btn-relleno,
+.btn-solid {
+  border-color: var(--azul-medio);
+  background-color: var(--azul-medio);
+  color: var(--blanco-calido);
+}
+
+.btn-relleno:hover,
 .btn-solid:hover {
-  border-color: #ffffff;
-  background-color: #ffffff;
+  border-color: var(--azul-oceano);
+  background-color: var(--azul-oceano);
 }
 
 .btn-block {
@@ -226,6 +412,15 @@
 .btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Flecha fina →: se corre 4 px al pasar el cursor. */
+.flecha {
+  display: inline-block;
+  flex: none;
+  width: 1.375rem;
+  height: 0.625rem;
+  transition: transform 0.4s var(--ease);
 }
 
 .link-arrow {
@@ -240,6 +435,22 @@
   content: '';
   position: absolute;
   inset: -0.7rem -0.35rem;
+}
+
+/* Enlace en mayúsculas espaciadas con flecha: "VER TODAS LAS SERIES →". */
+.enlace-caps {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  color: inherit;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
 }
 
 /* Enlace editorial: subrayado fino que se recorre al pasar el cursor. */
@@ -279,14 +490,17 @@
 }
 
 .btn:hover .arrow,
+.btn:hover .flecha,
 .link-arrow:hover .arrow,
-.enlace:hover .arrow {
+.enlace:hover .arrow,
+.enlace-caps:hover .flecha {
   transform: translateX(4px);
 }
 
 .btn:focus-visible,
 .link-arrow:focus-visible,
-.enlace:focus-visible {
+.enlace:focus-visible,
+.enlace-caps:focus-visible {
   outline: 1px solid currentColor;
   outline-offset: 4px;
 }
@@ -312,6 +526,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .arrow,
+  .flecha,
   .btn,
   .enlace {
     transition: none;
@@ -1007,9 +1222,9 @@
   width: 2.75rem;
   height: 2.75rem;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 70%, transparent);
+  border: 1px solid rgb(250 247 243 / 0.7);
   background: transparent;
-  color: var(--color-ink);
+  color: var(--blanco-calido);
   cursor: pointer;
 }
 
@@ -1036,7 +1251,7 @@
 }
 
 .lightbox__btn:focus-visible {
-  outline: 1px solid var(--color-ink);
+  outline: 1px solid var(--blanco-calido);
   outline-offset: 3px;
 }
 
@@ -1616,5 +1831,74 @@
 
   .contacto-encabezado {
     padding: 3.25rem 2.5rem 0.5rem;
+  }
+}
+
+/* ——— Formulario en fila (Inicio): nombre y email arriba, mensaje debajo y el botón al costado ——— */
+.formulario--fila {
+  display: grid;
+  gap: 1rem;
+}
+
+.formulario--fila .campo + .campo {
+  margin-top: 0;
+}
+
+.formulario--fila .campo label {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+}
+
+.formulario--fila .campo input,
+.formulario--fila .campo textarea {
+  border-color: #cfc2b4;
+  background-color: var(--blanco-calido);
+}
+
+.formulario--fila .campo input:focus,
+.formulario--fila .campo textarea:focus {
+  border-color: var(--azul-medio);
+  box-shadow: 0 0 0 1px var(--azul-medio);
+}
+
+.formulario--fila .campo textarea {
+  min-height: 5.5rem;
+}
+
+.formulario--fila .formulario__enviar {
+  justify-self: stretch;
+  margin-top: 0.25rem;
+}
+
+.formulario--fila .formulario__aviso {
+  margin-top: 0;
+}
+
+@media (min-width: 48rem) {
+  .formulario--fila {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    column-gap: 1.25rem;
+    align-items: start;
+  }
+
+  .formulario--fila .campo:has(textarea) {
+    grid-column: 1 / 3;
+  }
+
+  .formulario--fila .formulario__enviar {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: center;
+    min-width: 9.5rem;
+    margin-top: 0;
+  }
+
+  .formulario--fila .formulario__aviso {
+    grid-column: 1 / -1;
+  }
+
+  .formulario--fila .campo textarea {
+    min-height: 3.75rem;
   }
 }

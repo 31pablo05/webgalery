@@ -1,0 +1,61 @@
+---
+import Formulario from '../contacto/Formulario.jsx'
+import Trazo from '../layout/Trazo.astro'
+
+// Contacto del Inicio: reutiliza el formulario de Web3Forms (con y sin clave) en su variante en fila.
+const { clave = '', whatsapp = '' } = Astro.props
+---
+
+<section class="contacto-inicio ctx-marfil" aria-labelledby="contacto-inicio-titulo">
+	<Trazo class="contacto-inicio__linea" />
+	<div class="contacto-inicio__fila contenedor fade-in">
+		<div class="contacto-inicio__intro">
+			<div class="encabezado-seccion">
+				<h2 id="contacto-inicio-titulo" class="t-seccion">Contacto</h2>
+				<span class="filete filete--largo" aria-hidden="true"></span>
+			</div>
+			<p class="t-texto contacto-inicio__texto">Consultas sobre obra, adquisiciones, proyectos o exhibiciones.</p>
+		</div>
+		<div class="contacto-inicio__form">
+			<Formulario client:visible clave={clave} whatsapp={whatsapp} variante="fila" />
+		</div>
+	</div>
+</section>
+
+<style>
+	.contacto-inicio {
+		margin-top: 0;
+		padding-block: 0 2.5rem;
+	}
+
+	.contacto-inicio :global(.contacto-inicio__linea) {
+		margin-bottom: 2.5rem;
+	}
+
+	.contacto-inicio__fila {
+		display: grid;
+		gap: 1.75rem;
+	}
+
+	.contacto-inicio__texto {
+		max-width: 20rem;
+		margin-top: 0.9rem;
+	}
+
+	@media (min-width: 64rem) {
+		.contacto-inicio {
+			padding-block: 0 2.75rem;
+		}
+
+		.contacto-inicio__fila {
+			grid-template-columns: minmax(16rem, 28fr) 72fr;
+			align-items: center;
+			gap: 0;
+		}
+
+		.contacto-inicio__form {
+			padding-left: 3rem;
+			border-left: 1px solid var(--dorado);
+		}
+	}
+</style>

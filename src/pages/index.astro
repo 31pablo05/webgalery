@@ -1,22 +1,46 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import Hero from '../components/home/Hero.astro'
-import ObrasDestacadas from '../components/home/ObrasDestacadas.astro'
-import Presentacion from '../components/home/Presentacion.astro'
-import Trazo from '../components/layout/Trazo.astro'
-import { fetchInicio, urlFor } from '../lib/sanity.js'
+import FraseInicio from '../components/home/FraseInicio.astro'
+import SerieDestacada from '../components/home/SerieDestacada.astro'
+import SeriesDestacadas from '../components/home/SeriesDestacadas.astro'
+import AudiovisualPapel from '../components/home/AudiovisualPapel.astro'
+import SobreArtista from '../components/home/SobreArtista.astro'
+import ContactoInicio from '../components/home/ContactoInicio.astro'
+import {
+	fetchDiapositivasHero,
+	fetchDisciplinas,
+	fetchFraseInicio,
+	fetchInicio,
+	fetchSeriePrincipal,
+	fetchSeriesDestacadas,
+	fetchVideoReciente,
+	imagenDisponible,
+	urlFor,
+} from '../lib/sanity.js'
 
-const { artista, configuracion, destacadas, audiovisual } = await fetchInicio()
-const hero = artista?.heroInicio
+const [{ artista, configuracion }, diapositivas, frase, principal, disciplinas, video] = await Promise.all([
+	fetchInicio(),
+	fetchDiapositivasHero(),
+	fetchFraseInicio(),
+	fetchSeriePrincipal(),
+	fetchDisciplinas(),
+	fetchVideoReciente(),
+])
+// La serie principal ya tiene su banda: no se repite entre las destacadas (ninguna foto se repite en el Inicio).
+const series = await fetchSeriesDestacadas({ excluir: principal?.slug })
+const papel = disciplinas.find((disciplina) => disciplina.slug === 'obras-sobre-papel') || null
+const clave = import.meta.env.PUBLIC_WEB3FORMS_KEY || ''
+
 const nombre = artista?.nombre || ''
 const titulo = nombre ? `${nombre} — ${artista?.subtitulo || 'Artista visual'}` : 'Inicio'
-const imagenOg = hero?.imagen?.asset ? hero.imagen : artista?.retrato?.asset ? artista.retrato : null
+const imagenOg = diapositivas[0]?.imagen || (imagenDisponible(artista?.retrato) ? artista.retrato : null)
 const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : undefined
 ---
 
 <Layout
 	title={titulo}
-	description={hero?.bajada || artista?.bioCorta || 'Dibujo, obra bidimensional, experimentación gráfica y producción audiovisual.'}
+	description={artista?.bioCorta || frase || 'Pintura, dibujo, instalación, performance y video.'}
 	ogImage={ogImage}
 	ogImageAlt={imagenOg?.alt || nombre || 'Inicio'}
 	nombre={artista?.nombre}
@@ -26,14 +50,18 @@ const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : unde
 	instagram={configuracion?.instagram}
 	vimeo={configuracion?.vimeo}
 	youtube={configuracion?.youtube}
+	heroAzul={diapositivas.length > 0}
 >
-	<Hero hero={hero} nombre={nombre} subtitulo={artista?.subtitulo} frase={artista?.frase} />
-	<Trazo />
-	<ObrasDestacadas
-		destacadas={destacadas}
-		obra={configuracion?.obraPrincipal}
-		whatsapp={configuracion?.whatsapp}
+	<Hero diapositivas={diapositivas} />
+	<FraseInicio frase={frase} />
+	<SerieDestacada serie={principal} />
+	<SeriesDestacadas series={series} />
+	<AudiovisualPapel
+		video={video}
+		respaldo={imagenDisponible(artista?.fotoTaller) ? artista.fotoTaller : null}
+		textoAudiovisual={artista?.heroAudiovisual?.bajada?.trim() || ''}
+		papel={papel}
 	/>
-	<Trazo />
-	<Presentacion proyectos={audiovisual} artista={artista} vimeo={configuracion?.vimeo} />
+	<SobreArtista retrato={artista?.retrato} bio={artista?.bioCorta || ''} nombre={nombre} />
+	<ContactoInicio clave={clave} whatsapp={configuracion?.whatsapp} />
 </Layout>

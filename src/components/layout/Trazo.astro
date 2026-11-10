@@ -1,41 +1,20 @@
 ---
-import { TRAZO_SEPARADOR } from '../../lib/trazos.js'
-
-// Separador entre secciones: el trazo de tinta, estático y tenue. Ocupa la mitad del espacio entre
-// secciones arriba y la otra mitad abajo, así la distancia entre secciones es siempre la misma.
+// Separador entre bandas claras: una línea fina a todo el ancho del contenedor, con un tramo dorado al inicio.
 const { class: clase = '' } = Astro.props
 ---
 
-<div class:list={['separador contenedor grilla', clase]} aria-hidden="true">
-	<svg viewBox={TRAZO_SEPARADOR.viewBox} preserveAspectRatio="none" focusable="false">
-		<path d={TRAZO_SEPARADOR.d} />
-	</svg>
+<div class:list={['separador contenedor', clase]} aria-hidden="true">
+	<span class="separador__linea"></span>
 </div>
 
 <style>
 	.separador {
-		padding-block: calc(var(--seccion) / 2);
-	}
-
-	.separador svg {
 		display: block;
-		grid-column: 1 / -1;
-		width: 100%;
-		height: 1.25rem;
-		overflow: visible;
 	}
 
-	.separador path {
-		fill: none;
-		stroke: var(--color-ink);
-		stroke-width: 1.1;
-		stroke-linecap: round;
-		opacity: 0.32;
-	}
-
-	@media (min-width: 64rem) {
-		.separador svg {
-			grid-column: 1 / 6;
-		}
+	.separador__linea {
+		display: block;
+		height: 1px;
+		background: linear-gradient(to right, var(--dorado) 0 4rem, var(--color-line) 4rem 100%);
 	}
 </style>

@@ -1,0 +1,24 @@
+---
+// Firma real de la artista, en línea para que tome el color del texto (currentColor).
+// Nunca se redibuja ni se modifica: solo se le cambia la semántica (el nombre lo da el enlace que la contiene).
+import svg from '../../assets/logo/logo-celia-gomez.svg?raw'
+
+const { class: clase = '' } = Astro.props
+const firma = svg.replace(/\srole="img"/, '').replace(/\saria-label="[^"]*"/, '').replace('<svg', '<svg aria-hidden="true" focusable="false"')
+---
+
+<span class:list={['firma', clase]} set:html={firma} />
+
+<style>
+	.firma {
+		display: block;
+		color: inherit;
+		line-height: 0;
+	}
+
+	.firma :global(svg) {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+</style>

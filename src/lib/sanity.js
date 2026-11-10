@@ -1,11 +1,13 @@
-import {existsSync} from 'node:fs'
+import {existsSync, readdirSync} from 'node:fs'
 import {join} from 'node:path'
 import {createClient} from '@sanity/client'
 import {createImageUrlBuilder} from '@sanity/image-url'
 import * as demo from '../data/demo.js'
+import {textoDePortable} from './texto.js'
+import {resolverEnlace, rutaDisciplina, rutaSerie} from './rutas.js'
 
 const API_VERSION = '2026-11-05'
-const COLOR_SUPERFICIE = '#efedea'
+const COLOR_SUPERFICIE = '#f2e9e0'
 // Anchos de las variantes generadas para las imágenes de demo (archivo-400.webp, archivo-800.webp...).
 const ANCHOS_DEMO = [400, 800, 1200]
 
@@ -52,10 +54,25 @@ function datosDemo(source) {
   }
 }
 
+let listadoDemo = null
+
+function nombreReal(archivo) {
+  if (!listadoDemo) {
+    const carpeta = join(process.cwd(), 'public', 'demo')
+    try {
+      listadoDemo = new Map(readdirSync(carpeta).map((nombre) => [nombre.toLowerCase(), nombre]))
+    } catch {
+      listadoDemo = new Map()
+    }
+  }
+  return listadoDemo.get(String(archivo).toLowerCase()) || ''
+}
+
 function archivoDemo(archivo) {
   if (!archivosDemo.has(archivo)) {
-    const ruta = join(process.cwd(), 'public', 'demo', archivo)
-    archivosDemo.set(archivo, existsSync(ruta) ? `/demo/${archivo}` : '')
+    const real = nombreReal(archivo)
+    const ruta = real && join(process.cwd(), 'public', 'demo', real)
+    archivosDemo.set(archivo, ruta && existsSync(ruta) ? `/demo/${encodeURI(real)}` : '')
   }
   return archivosDemo.get(archivo)
 }
@@ -111,8 +128,21 @@ export function urlFor(source) {
   return builder.image(source).auto('format')
 }
 
+// Una imagen está disponible si tiene archivo: en Sanity, un asset; en demo, el WebP procesado.
+// Así una foto que todavía no se procesó se comporta igual que una imagen sin cargar en Sanity.
+export function imagenDisponible(source) {
+  if (!source?.asset) return false
+  if (!enDemo) return true
+  const datos = datosDemo(source)
+  return Boolean(datos && datos.ancho > 0 && archivoDemo(datos.archivo))
+}
+
+function obrasDemo() {
+  return demo.obras.filter((obra) => imagenDisponible(obra.imagenPrincipal))
+}
+
 export async function fetchObras(filtro = '', params = {}) {
-  if (enDemo) return demo.obras
+  if (enDemo) return obrasDemo()
   const publicadas = `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc)`
   const query = filtro ? `${publicadas}[${filtro}]` : publicadas
   return client.fetch(query, params)
@@ -154,7 +184,7 @@ async function completarImagenesDemo() {
     if (String(valor.asset?._ref || '').startsWith('image-demo-')) imagenes.push(valor)
     else Object.values(valor).forEach(visitar)
   }
-  visitar([demo.obras, demo.artista, demo.configuracion])
+  visitar([demo.obras, demo.artista, demo.configuracion, demo.series, demo.disciplinas, demo.diapositivasHero])
 
   const calculados = new Map()
   await Promise.all(
@@ -257,7 +287,7 @@ async function conMiniatura(proyectos) {
 
 export async function fetchInicio() {
   if (enDemo) {
-    const destacadas = demo.obras
+    const destacadas = obrasDemo()
       .filter((obra) => obra.destacadaEnInicio)
       .slice(0, 4)
       .map((obra) => ({
@@ -292,7 +322,8 @@ export async function fetchInicio() {
         bajada,
         imagen ${imagen}
       },
-      retrato ${imagen}
+      retrato ${imagen},
+      fotoTaller ${imagen}
     }`),
     client.fetch(`*[_id == "configuracion"][0]{
       email,
@@ -429,7 +460,7 @@ export async function fetchGaleria() {
       artista,
       configuracion,
       bajada: bajadaSanity ? bajadaSanity.trim() : '',
-      obras: demo.obras
+      obras: obrasDemo()
         .filter((obra) => obra?.slug)
         .map(prepararObraGaleria),
     }
@@ -610,7 +641,7 @@ function vistasDe(obras) {
 }
 
 export async function fetchPaginasObra() {
-  if (enDemo) return paginasDe(vistasDe(demo.obras), demo.artista, demo.configuracion)
+  if (enDemo) return paginasDe(vistasDe(obrasDemo()), demo.artista, demo.configuracion)
 
   const [artista, configuracion, obras] = await Promise.all([
     client.fetch(`*[_id == "artista"][0]{ nombre, subtitulo }`),
@@ -882,4 +913,110 @@ export async function fetchContacto() {
 	])
 
 	return armarContacto(artista, configuracion)
+}
+
+// ——— Inicio (Etapa 1) ———
+// En modo demo devuelven los datos de src/data/demo.js con la misma forma que tendrán desde Sanity.
+// Las consultas GROQ de diapositivas, series y disciplinas se escriben en la Etapa 2: hasta entonces,
+// con Sanity configurado, devuelven vacío y el Inicio oculta esas secciones.
+
+const porOrden = (a, b) => (a.orden ?? 999999) - (b.orden ?? 999999)
+
+function disciplinaDe(slug) {
+  const disciplina = (demo.disciplinas || []).find((item) => item.slug === slug)
+  return disciplina ? {nombre: disciplina.nombre, slug: disciplina.slug} : null
+}
+
+function prepararDisciplina(disciplina) {
+  return {
+    nombre: disciplina.nombre || '',
+    slug: disciplina.slug || '',
+    href: rutaDisciplina(disciplina.slug),
+    descripcion: String(disciplina.descripcion || '').trim(),
+    mostrarEnMenu: disciplina.mostrarEnMenu !== false,
+    portada: imagenDisponible(disciplina.portada) ? disciplina.portada : null,
+  }
+}
+
+export async function fetchDisciplinas() {
+  if (!enDemo) return []
+  return [...(demo.disciplinas || [])].sort(porOrden).map(prepararDisciplina)
+}
+
+function prepararSerie(serie, obras) {
+  const cantidadObras = obras.filter((obra) => obra.serie?.slug === serie.slug).length
+  return {
+    nombre: serie.nombre || '',
+    slug: serie.slug || '',
+    href: rutaSerie(serie.slug),
+    disciplina: serie.disciplina ? disciplinaDe(serie.disciplina) : null,
+    portada: imagenDisponible(serie.portada) ? serie.portada : null,
+    descripcion: textoDePortable(serie.descripcion),
+    anio: String(serie.anio || '').trim(),
+    tecnicaGeneral: String(serie.tecnicaGeneral || '').trim(),
+    cantidadObras,
+  }
+}
+
+function seriesPublicadasDemo() {
+  return [...(demo.series || [])].filter((serie) => serie.publicada !== false).sort(porOrden)
+}
+
+export async function fetchSeriePrincipal() {
+  if (!enDemo) return null
+  const serie = seriesPublicadasDemo().find((item) => item.principalInicio)
+  return serie ? prepararSerie(serie, obrasDemo()) : null
+}
+
+// Hasta 3 series destacadas. La principal ya tiene su banda en el Inicio: se puede excluir para no repetir su portada.
+export async function fetchSeriesDestacadas({excluir = ''} = {}) {
+  if (!enDemo) return []
+  const obras = obrasDemo()
+  return seriesPublicadasDemo()
+    .filter((serie) => serie.destacada && serie.slug !== excluir)
+    .slice(0, 3)
+    .map((serie) => prepararSerie(serie, obras))
+}
+
+export async function fetchDiapositivasHero() {
+  if (!enDemo) return []
+  const disciplinas = (demo.disciplinas || []).map((item) => item.slug)
+  return [...(demo.diapositivasHero || [])]
+    .filter((diapositiva) => diapositiva.activa !== false && imagenDisponible(diapositiva.imagen))
+    .sort(porOrden)
+    .map((diapositiva) => ({
+      id: diapositiva._id,
+      etiqueta: String(diapositiva.etiqueta || '').trim(),
+      titulo: String(diapositiva.titulo || '').trim(),
+      subtitulo: String(diapositiva.subtitulo || '').trim(),
+      textoBoton: String(diapositiva.textoBoton || '').trim(),
+      enlace: resolverEnlace(diapositiva.enlace, disciplinas),
+      imagen: diapositiva.imagen,
+    }))
+}
+
+export async function fetchFraseInicio() {
+  if (enDemo) return String(demo.artista?.fraseInicio || '').trim()
+  const artista = await client.fetch(`*[_id == "artista"][0]{ fraseInicio }`)
+  return String(artista?.fraseInicio || '').trim()
+}
+
+// El video más reciente, listo para el modal de Vimeo (o null si no hay ninguno).
+export async function fetchVideoReciente() {
+  if (enDemo) {
+    const [video] = await proyectosDemo()
+    return video ? prepararProyecto(video) : null
+  }
+  const video = await client.fetch(`*[_type == "proyectoAudiovisual" && defined(linkVimeo) && !(_id in path("drafts.**"))] | order(coalesce(anio, 0) desc, _createdAt desc) [0] {
+      _id,
+      titulo,
+      anio,
+      duracion,
+      descripcionCorta,
+      linkVimeo,
+      categoria,
+      destacado,
+      miniatura ${imagen}
+    }`)
+  return video ? prepararProyecto(video) : null
 }

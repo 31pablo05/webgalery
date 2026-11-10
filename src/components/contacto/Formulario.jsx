@@ -9,7 +9,9 @@ function esEmail(valor) {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)
 }
 
-export default function Formulario({ clave = '', whatsapp = '' }) {
+// variante "fila": versión compacta del Inicio (nombre y email en una fila, mensaje debajo y el botón al costado).
+export default function Formulario({ clave = '', whatsapp = '', variante = '' }) {
+	const fila = variante === 'fila'
 	const [nombre, setNombre] = useState('')
 	const [email, setEmail] = useState('')
 	const [mensaje, setMensaje] = useState('')
@@ -85,7 +87,7 @@ export default function Formulario({ clave = '', whatsapp = '' }) {
 	}
 
 	return (
-		<form className="formulario" onSubmit={enviar} noValidate>
+		<form className={fila ? 'formulario formulario--fila' : 'formulario'} onSubmit={enviar} noValidate>
 			<div className="contacto-trampa" aria-hidden="true">
 				<label>
 					No completar
@@ -143,7 +145,7 @@ export default function Formulario({ clave = '', whatsapp = '' }) {
 				<textarea
 					id="contacto-mensaje"
 					name="mensaje"
-					rows={6}
+					rows={fila ? 2 : 6}
 					value={mensaje}
 					aria-invalid={errores.mensaje ? 'true' : undefined}
 					aria-describedby={errores.mensaje ? 'contacto-mensaje-error' : undefined}
@@ -156,9 +158,20 @@ export default function Formulario({ clave = '', whatsapp = '' }) {
 				)}
 			</div>
 
-			<button className="btn btn-solid btn-block formulario__enviar" type="submit" disabled={estado === 'enviando'}>
+			<button
+				className={fila ? 'btn btn-relleno formulario__enviar' : 'btn btn-solid btn-block formulario__enviar'}
+				type="submit"
+				disabled={estado === 'enviando'}
+			>
 				{estado === 'enviando' ? (
 					'Enviando...'
+				) : fila ? (
+					<>
+						Enviar
+						<svg className="flecha" viewBox="0 0 22 10" aria-hidden="true" focusable="false">
+							<path d="M0 5h20.5M16.5 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+						</svg>
+					</>
 				) : (
 					<>
 						Enviar mensaje <span className="arrow" aria-hidden="true">→</span>

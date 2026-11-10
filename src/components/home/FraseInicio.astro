@@ -1,0 +1,59 @@
+---
+// Frase introductoria del Inicio (editable desde los datos). Centrada, con líneas doradas a los lados.
+const { frase = '' } = Astro.props
+---
+
+{
+	frase && (
+		<section class="frase ctx-marfil" aria-label="Presentación de la obra">
+			<div class="frase__fila contenedor fade-in">
+				<span class="frase__linea" aria-hidden="true" />
+				<p class="frase__texto">{frase}</p>
+				<span class="frase__linea" aria-hidden="true" />
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.frase {
+		padding-block: 2.75rem;
+	}
+
+	.frase__fila {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 2.5rem;
+	}
+
+	.frase__linea {
+		display: none;
+		flex: 0 1 4.5rem;
+		height: 1px;
+		background-color: var(--dorado);
+	}
+
+	.frase__texto {
+		max-width: 46rem;
+		color: var(--tinta);
+		font-family: var(--font-ui);
+		font-size: clamp(1rem, 0.85vw + 0.75rem, 1.375rem);
+		font-weight: 400;
+		line-height: 1.6;
+		letter-spacing: 0.2em;
+		text-align: center;
+		text-transform: uppercase;
+		text-wrap: balance;
+	}
+
+	@media (min-width: 64rem) {
+		.frase {
+			padding-block: 3.25rem;
+		}
+
+		.frase__linea {
+			display: block;
+		}
+	}
+</style>

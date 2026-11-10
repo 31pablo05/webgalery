@@ -1,0 +1,264 @@
+---
+import Imagen from './Imagen.astro'
+import Flecha from '../layout/Flecha.astro'
+import { rutas } from '../../lib/rutas.js'
+
+// series: salida de fetchSeriesDestacadas() (hasta 3). Con menos, se muestran las que haya, sin huecos.
+const { series = [] } = Astro.props
+const tarjetas = series.slice(0, 3).map((serie) => ({
+	...serie,
+	detalle: [serie.disciplina?.nombre, serie.tecnicaGeneral].filter(Boolean).join(' · '),
+}))
+---
+
+{
+	tarjetas.length > 0 && (
+		<section class="series contenedor" aria-labelledby="series-titulo">
+			<header class="series__cabecera fade-in">
+				<div class="encabezado-seccion">
+					<h2 id="series-titulo" class="t-seccion">
+						Series destacadas
+					</h2>
+					<span class="filete filete--largo" aria-hidden="true" />
+				</div>
+				<a class="enlace-caps series__todas" href={rutas.series}>
+					Ver todas las series
+					<Flecha />
+				</a>
+			</header>
+
+			<ul class:list={['series__lista', `series__lista--${tarjetas.length}`]}>
+				{tarjetas.map((serie) => (
+					<li class="series__item fade-in">
+						<a class="tarjeta" href={serie.href}>
+							<div class="tarjeta__imagen">
+								{serie.portada && (
+									<Imagen
+										source={serie.portada}
+										alt={serie.portada.alt || serie.nombre}
+										width={800}
+										height={500}
+										sizes="(min-width: 64rem) min(31vw, 540px), (min-width: 48rem) 46vw, 82vw"
+									/>
+								)}
+							</div>
+							<div class="tarjeta__pie">
+								<div class="tarjeta__textos">
+									<h3 class="tarjeta__nombre">{serie.nombre}</h3>
+									{serie.detalle && <p class="tarjeta__detalle">{serie.detalle}</p>}
+								</div>
+								<span class="tarjeta__circulo" aria-hidden="true">
+									<Flecha />
+								</span>
+							</div>
+						</a>
+					</li>
+				))}
+			</ul>
+		</section>
+	)
+}
+
+<style>
+	.series {
+		padding-top: var(--bloque);
+	}
+
+	.series__cabecera {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem 2rem;
+		margin-bottom: 1.5rem;
+	}
+
+	/* Móvil: carrusel táctil con la tarjeta siguiente asomando. */
+	.series__lista {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: 82%;
+		gap: 1rem;
+		margin: 0 calc(-1 * var(--gutter));
+		padding: 0 var(--gutter) 0.25rem;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		scroll-snap-type: x mandatory;
+		scroll-padding-inline: var(--gutter);
+		scrollbar-width: none;
+		list-style: none;
+	}
+
+	.series__lista::-webkit-scrollbar {
+		display: none;
+	}
+
+	.series__lista--1 {
+		grid-auto-columns: 100%;
+	}
+
+	.series__item {
+		min-width: 0;
+		scroll-snap-align: start;
+	}
+
+	.tarjeta {
+		position: relative;
+		display: block;
+		overflow: hidden;
+		color: var(--blanco-calido);
+		text-decoration: none;
+		background-color: var(--azul-profundo);
+	}
+
+	/* Móvil: un poco más alta, para que el nombre entre sin pisar la imagen entera. */
+	.tarjeta__imagen {
+		position: relative;
+		aspect-ratio: 4 / 3;
+	}
+
+	.tarjeta__textos {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.tarjeta__imagen :global(.lqip) {
+		position: absolute;
+		inset: 0;
+	}
+
+	.tarjeta__imagen :global(img) {
+		transition: transform 0.9s var(--ease);
+	}
+
+	/* Degradado oscuro discreto en el tercio inferior: solo para que el nombre se lea. */
+	.tarjeta__imagen::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(to top, rgb(11 32 45 / 0.85) 0%, rgb(11 32 45 / 0.5) 22%, rgb(11 32 45 / 0) 45%);
+	}
+
+	.tarjeta__pie {
+		position: absolute;
+		inset: auto 0 0;
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 1rem 1.1rem 1.1rem;
+	}
+
+	.tarjeta__nombre {
+		font-family: var(--font-ui);
+		font-size: clamp(1rem, 0.6vw + 0.8rem, 1.1875rem);
+		font-weight: 500;
+		line-height: 1.25;
+		letter-spacing: clamp(0.1em, 0.5vw, 0.16em);
+		text-wrap: balance;
+		text-transform: uppercase;
+	}
+
+	.tarjeta__detalle {
+		margin-top: 0.35rem;
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--marfil);
+	}
+
+	.tarjeta__circulo {
+		display: grid;
+		flex: none;
+		place-items: center;
+		width: 2.5rem;
+		height: 2.5rem;
+		border: 1px solid var(--dorado);
+		border-radius: 50%;
+		color: var(--dorado);
+		transition:
+			background-color 0.4s var(--ease),
+			color 0.4s var(--ease);
+	}
+
+	.tarjeta__circulo :global(.flecha) {
+		width: 1rem;
+	}
+
+	.tarjeta:hover .tarjeta__circulo,
+	.tarjeta:focus-visible .tarjeta__circulo {
+		background-color: var(--dorado);
+		color: var(--azul-profundo);
+	}
+
+	.tarjeta:focus-visible {
+		outline: 1px solid var(--tinta);
+		outline-offset: 4px;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.tarjeta:hover .tarjeta__imagen :global(img) {
+			transform: scale(1.03);
+		}
+	}
+
+	/* Tablet: dos columnas. Escritorio: tantas columnas como series (hasta 3). */
+	@media (min-width: 48rem) {
+		.series__lista {
+			grid-auto-flow: row;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 1.25rem;
+			margin: 0;
+			padding: 0;
+			overflow: visible;
+		}
+
+		.series__lista--1 {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.tarjeta__imagen {
+			aspect-ratio: 16 / 10;
+		}
+
+		/* Con tres en tablet, la tercera ocupa la fila entera: sin huecos. */
+		.series__lista--3 .series__item:last-child {
+			grid-column: 1 / -1;
+		}
+
+		.series__lista--3 .series__item:last-child .tarjeta__imagen {
+			aspect-ratio: 21 / 9;
+		}
+	}
+
+	@media (min-width: 64rem) {
+		.series__cabecera {
+			margin-bottom: 1.75rem;
+		}
+
+		.series__lista--3 {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+
+		.series__lista--3 .series__item:last-child {
+			grid-column: auto;
+		}
+
+		.series__lista--3 .series__item:last-child .tarjeta__imagen {
+			aspect-ratio: 16 / 10;
+		}
+
+		.series__lista--1 .tarjeta__imagen {
+			aspect-ratio: 21 / 9;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.tarjeta__imagen :global(img),
+		.tarjeta__circulo {
+			transition: none;
+		}
+	}
+</style>
