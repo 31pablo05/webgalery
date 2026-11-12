@@ -1,0 +1,229 @@
+---
+import Imagen from './Imagen.astro'
+import Flecha from '../layout/Flecha.astro'
+import { rutas } from '../../lib/rutas.js'
+
+/*
+	Tres accesos del mismo tamaño en fila: OBRAS · ILUSTRACIONES · AUDIOVISUAL.
+	Obras y Audiovisual en azul, Ilustraciones en marfil, como en la maqueta.
+	Cada uno lleva una foto real, el título con su línea dorada, una línea de texto y su botón.
+	Ninguna foto se repite en el Inicio.
+
+	fotoObras: imagen de un cuadro real para el acceso Obras.
+	ilustraciones: la disciplina (nombre, descripcion, portada, href), o null.
+	video: salida de fetchVideoReciente() (para la portada del acceso Audiovisual), o null.
+	respaldoAudiovisual: foto de proceso si no hay video cargado.
+*/
+const { fotoObras = null, textoObras = '', ilustraciones = null, video = null, respaldoAudiovisual = null, textoAudiovisual = '' } = Astro.props
+
+const portadaVideo = video?.miniatura?.src
+	? video.miniatura
+	: video?.miniaturaUrl
+		? { src: video.miniaturaUrl, srcset: '', alt: '' }
+		: null
+
+const accesos = [
+	{
+		id: 'obras',
+		titulo: 'Obras',
+		texto: textoObras,
+		href: rutas.obras,
+		boton: 'Ver obras',
+		contexto: 'ctx-azul textura textura--sutil',
+		imagen: fotoObras,
+	},
+	ilustraciones && {
+		id: 'ilustraciones',
+		titulo: ilustraciones.nombre,
+		texto: ilustraciones.descripcion,
+		href: ilustraciones.href,
+		boton: 'Explorar',
+		contexto: 'ctx-marfil',
+		imagen: ilustraciones.portada,
+	},
+	{
+		id: 'audiovisual',
+		titulo: 'Audiovisual',
+		texto: textoAudiovisual,
+		href: rutas.audiovisual,
+		boton: 'Ver audiovisual',
+		contexto: 'ctx-azul ctx-azul--profundo textura textura--sutil',
+		imagen: null,
+		imagenDirecta: portadaVideo,
+		respaldo: respaldoAudiovisual,
+	},
+].filter(Boolean)
+---
+
+<section class="accesos contenedor" aria-label="Secciones del sitio">
+	<ul class="accesos__lista">
+		{
+			accesos.map((acceso) => (
+				<li class:list={['acceso fade-in', acceso.contexto]}>
+					<a class="acceso__link" href={acceso.href} aria-labelledby={`acceso-${acceso.id}`}>
+						<div class="acceso__imagen">
+							{acceso.imagen && (
+								<Imagen
+									source={acceso.imagen}
+									alt={acceso.imagen.alt || acceso.titulo}
+									width={900}
+									height={560}
+									sizes="(min-width: 64rem) 31vw, (min-width: 48rem) 48vw, 100vw"
+								/>
+							)}
+							{!acceso.imagen && acceso.imagenDirecta && (
+								<img
+									src={acceso.imagenDirecta.src}
+									srcset={acceso.imagenDirecta.srcset || undefined}
+									sizes="(min-width: 64rem) 31vw, (min-width: 48rem) 48vw, 100vw"
+									alt={acceso.imagenDirecta.alt || `Fotograma de ${video?.titulo || 'video'}`}
+									width="1280"
+									height="720"
+									loading="lazy"
+									decoding="async"
+								/>
+							)}
+							{!acceso.imagen && !acceso.imagenDirecta && acceso.respaldo && (
+								<Imagen
+									source={acceso.respaldo}
+									alt={acceso.respaldo.alt || acceso.titulo}
+									width={900}
+									height={560}
+									sizes="(min-width: 64rem) 31vw, (min-width: 48rem) 48vw, 100vw"
+								/>
+							)}
+						</div>
+						<div class="acceso__texto">
+							<span class="encabezado-seccion">
+								<h2 id={`acceso-${acceso.id}`} class="t-seccion acceso__titulo">
+									{acceso.titulo}
+								</h2>
+								<span class="filete" aria-hidden="true" />
+							</span>
+							{acceso.texto && <p class="t-texto t-secundario acceso__descripcion">{acceso.texto}</p>}
+							<span class="btn btn-contorno acceso__boton">
+								{acceso.boton}
+								<Flecha />
+							</span>
+						</div>
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</section>
+
+<style>
+	.accesos {
+		padding-top: var(--bloque);
+	}
+
+	.accesos__lista {
+		display: grid;
+		gap: 1rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.acceso {
+		overflow: hidden;
+	}
+
+	.acceso__link {
+		display: grid;
+		height: 100%;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	/* Móvil: compactos, la imagen baja. */
+	.acceso__imagen {
+		position: relative;
+		aspect-ratio: 16 / 9;
+		overflow: hidden;
+	}
+
+	.acceso__imagen :global(.lqip),
+	.acceso__imagen > img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
+
+	.acceso__imagen :global(img),
+	.acceso__imagen > img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.9s var(--ease);
+	}
+
+	.acceso__texto {
+		display: grid;
+		justify-items: start;
+		align-content: start;
+		padding: 1.4rem 1.5rem 1.75rem;
+	}
+
+	.acceso__descripcion {
+		max-width: 24rem;
+		margin-top: 0.75rem;
+		font-size: 0.9375rem;
+	}
+
+	.acceso__boton {
+		margin-top: 1.25rem;
+	}
+
+	.acceso__link:focus-visible {
+		outline: 1px solid var(--color-ink);
+		outline-offset: 4px;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.acceso__link:hover .acceso__imagen :global(img),
+		.acceso__link:hover .acceso__imagen > img {
+			transform: scale(1.03);
+		}
+	}
+
+	/* Tablet: 2 + 1 (el tercero ocupa la fila entera). */
+	@media (min-width: 48rem) {
+		.accesos__lista {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 1.25rem;
+		}
+
+		.accesos__lista > :last-child {
+			grid-column: 1 / -1;
+		}
+
+		.accesos__lista > :last-child .acceso__imagen {
+			aspect-ratio: 21 / 9;
+		}
+	}
+
+	/* Escritorio: los tres en fila, del mismo tamaño. */
+	@media (min-width: 64rem) {
+		.accesos__lista {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+
+		.accesos__lista > :last-child {
+			grid-column: auto;
+		}
+
+		.accesos__lista > :last-child .acceso__imagen {
+			aspect-ratio: 16 / 9;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.acceso__imagen :global(img),
+		.acceso__imagen > img {
+			transition: none;
+		}
+	}
+</style>

@@ -8,17 +8,21 @@ const { disciplinas = [], instagram = '', vimeo = '', heroAzul = false } = Astro
 const pathname = Astro.url.pathname.replace(/\/+$/, '') || '/'
 const enSeccion = (base) => pathname === base || pathname.startsWith(`${base}/`)
 
+// Menú plano: INICIO · OBRAS · ILUSTRACIONES · AUDIOVISUAL · SOBRE LA ARTISTA · CONTACTO.
+// Las secciones de obra salen de las disciplinas: una disciplina nueva aparece sola en el menú.
 // La sección activa sale de la URL real, no del enlace (algunos enlaces son provisorios hasta la Etapa 3).
 const nav = [
 	{ id: 'inicio', href: rutas.inicio, label: 'Inicio', activo: pathname === '/' },
-	{ id: 'obra', href: rutas.obras, label: 'Obra', activo: enSeccion('/obras'), desplegable: disciplinas.length > 0 },
-	{ id: 'series', href: rutas.series, label: 'Series', activo: enSeccion('/series') },
+	...disciplinas.map((item) => ({
+		id: item.slug,
+		href: item.href,
+		label: item.nombre,
+		activo: enSeccion(item.href),
+	})),
 	{ id: 'audiovisual', href: rutas.audiovisual, label: 'Audiovisual', activo: enSeccion('/audiovisual') },
 	{ id: 'sobre', href: rutas.sobreMi, label: 'Sobre la artista', activo: enSeccion('/sobre-mi') },
 	{ id: 'contacto', href: rutas.contacto, label: 'Contacto', activo: enSeccion('/contacto') },
 ]
-
-const subObra = [...disciplinas.map((item) => ({ href: item.href, label: item.nombre })), { href: rutas.obras, label: 'Todas las obras' }]
 
 const redes = [
 	{ href: instagram, label: 'Instagram' },
@@ -36,43 +40,17 @@ const redes = [
 		<nav class="site-nav" aria-label="Principal">
 			<ul class="site-nav__lista">
 				{
-					nav.map((item) =>
-						item.desplegable ? (
-							<li class="desplegable" data-desplegable>
-								<button
-									type="button"
-									class:list={['site-nav__link', 'desplegable__boton', { 'is-active': item.activo }]}
-									aria-expanded="false"
-									aria-controls="submenu-obra"
-									data-desplegable-boton
-								>
-									{item.label}
-									<svg class="desplegable__chevron" viewBox="0 0 10 6" aria-hidden="true" focusable="false">
-										<path d="M1 1l4 4 4-4" />
-									</svg>
-								</button>
-								<ul id="submenu-obra" class="desplegable__menu" data-desplegable-menu hidden>
-									{subObra.map((sub) => (
-										<li>
-											<a class="desplegable__link" href={sub.href}>
-												{sub.label}
-											</a>
-										</li>
-									))}
-								</ul>
-							</li>
-						) : (
-							<li>
-								<a
-									href={item.href}
-									class:list={['site-nav__link', { 'is-active': item.activo }]}
-									aria-current={item.activo ? 'page' : undefined}
-								>
-									{item.label}
-								</a>
-							</li>
-						),
-					)
+					nav.map((item) => (
+						<li>
+							<a
+								href={item.href}
+								class:list={['site-nav__link', { 'is-active': item.activo }]}
+								aria-current={item.activo ? 'page' : undefined}
+							>
+								{item.label}
+							</a>
+						</li>
+					))
 				}
 			</ul>
 		</nav>
@@ -96,39 +74,13 @@ const redes = [
 				{
 					nav.map((item) => (
 						<li>
-							{item.desplegable ? (
-								<>
-									<button
-										type="button"
-										class:list={['menu-link', 'menu-link--boton', { 'is-active': item.activo }]}
-										aria-expanded="false"
-										aria-controls="menu-obra"
-										data-menu-obra
-									>
-										{item.label}
-										<svg class="desplegable__chevron" viewBox="0 0 10 6" aria-hidden="true" focusable="false">
-											<path d="M1 1l4 4 4-4" />
-										</svg>
-									</button>
-									<ul id="menu-obra" class="menu-sub" hidden>
-										{subObra.map((sub) => (
-											<li>
-												<a class="menu-sub__link" href={sub.href}>
-													{sub.label}
-												</a>
-											</li>
-										))}
-									</ul>
-								</>
-							) : (
-								<a
-									href={item.href}
-									class:list={['menu-link', { 'is-active': item.activo }]}
-									aria-current={item.activo ? 'page' : undefined}
-								>
-									{item.label}
-								</a>
-							)}
+							<a
+								href={item.href}
+								class:list={['menu-link', { 'is-active': item.activo }]}
+								aria-current={item.activo ? 'page' : undefined}
+							>
+								{item.label}
+							</a>
 						</li>
 					))
 				}

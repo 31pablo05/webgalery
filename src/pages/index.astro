@@ -2,9 +2,8 @@
 import Layout from '../layouts/Layout.astro'
 import Hero from '../components/home/Hero.astro'
 import FraseInicio from '../components/home/FraseInicio.astro'
-import SerieDestacada from '../components/home/SerieDestacada.astro'
-import SeriesDestacadas from '../components/home/SeriesDestacadas.astro'
-import AudiovisualPapel from '../components/home/AudiovisualPapel.astro'
+import ObraDestacada from '../components/home/ObraDestacada.astro'
+import TresAccesos from '../components/home/TresAccesos.astro'
 import SobreArtista from '../components/home/SobreArtista.astro'
 import ContactoInicio from '../components/home/ContactoInicio.astro'
 import {
@@ -13,13 +12,12 @@ import {
 	fetchFraseInicio,
 	fetchInicio,
 	fetchSeriePrincipal,
-	fetchSeriesDestacadas,
 	fetchVideoReciente,
 	imagenDisponible,
 	urlFor,
 } from '../lib/sanity.js'
 
-const [{ artista, configuracion }, diapositivas, frase, principal, disciplinas, video] = await Promise.all([
+const [{ artista, configuracion }, diapositivas, frase, destacada, disciplinas, video] = await Promise.all([
 	fetchInicio(),
 	fetchDiapositivasHero(),
 	fetchFraseInicio(),
@@ -27,9 +25,9 @@ const [{ artista, configuracion }, diapositivas, frase, principal, disciplinas, 
 	fetchDisciplinas(),
 	fetchVideoReciente(),
 ])
-// La serie principal ya tiene su banda: no se repite entre las destacadas (ninguna foto se repite en el Inicio).
-const series = await fetchSeriesDestacadas({ excluir: principal?.slug })
-const papel = disciplinas.find((disciplina) => disciplina.slug === 'obras-sobre-papel') || null
+const ilustraciones = disciplinas.find((disciplina) => disciplina.slug === 'ilustraciones') || null
+// Acceso "Obras": un cuadro real como portada (la obra principal configurada). Ninguna foto se repite en el Inicio.
+const fotoObras = imagenDisponible(configuracion?.obraPrincipal?.imagenPrincipal) ? configuracion.obraPrincipal.imagenPrincipal : null
 const clave = import.meta.env.PUBLIC_WEB3FORMS_KEY || ''
 
 const nombre = artista?.nombre || ''
@@ -54,13 +52,14 @@ const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : unde
 >
 	<Hero diapositivas={diapositivas} />
 	<FraseInicio frase={frase} />
-	<SerieDestacada serie={principal} />
-	<SeriesDestacadas series={series} />
-	<AudiovisualPapel
+	<ObraDestacada obra={destacada} />
+	<TresAccesos
+		fotoObras={fotoObras}
+		textoObras={artista?.bajadaGaleria || ''}
+		ilustraciones={ilustraciones}
 		video={video}
-		respaldo={imagenDisponible(artista?.fotoTaller) ? artista.fotoTaller : null}
+		respaldoAudiovisual={imagenDisponible(artista?.fotoTaller) ? artista.fotoTaller : null}
 		textoAudiovisual={artista?.heroAudiovisual?.bajada?.trim() || ''}
-		papel={papel}
 	/>
 	<SobreArtista retrato={artista?.retrato} bio={artista?.bioCorta || ''} nombre={nombre} />
 	<ContactoInicio clave={clave} whatsapp={configuracion?.whatsapp} />

@@ -1,0 +1,60 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { fetchDisciplinas, fetchGaleria } from '../lib/sanity.js'
+
+// Sección "Ilustraciones" (nombre provisorio hasta que lo confirme la artista).
+// Sin contenido cargado todavía: solo el título y "Próximamente". Se completa en la Etapa 3.
+const [{ artista, configuracion }, disciplinas] = await Promise.all([fetchGaleria(), fetchDisciplinas()])
+const disciplina = disciplinas.find((item) => item.slug === 'ilustraciones') || null
+const nombre = disciplina?.nombre || 'Ilustraciones'
+const titulo = artista?.nombre ? `${nombre} — ${artista.nombre}` : nombre
+---
+
+<Layout
+	title={titulo}
+	description={disciplina?.descripcion || 'Próximamente.'}
+	nombre={artista?.nombre}
+	subtitulo={artista?.subtitulo}
+	email={configuracion?.email}
+	ciudad={configuracion?.ciudad}
+	instagram={configuracion?.instagram}
+	vimeo={configuracion?.vimeo}
+	youtube={configuracion?.youtube}
+>
+	<header class="encabezado contenedor grilla fade-in">
+		<h1 class="page-title encabezado__titulo">{nombre}</h1>
+		{disciplina?.descripcion && <p class="encabezado__bajada">{disciplina.descripcion}</p>}
+	</header>
+	<section class="contenedor fade-in proximamente" aria-label="Estado de la sección">
+		<p class="label">Próximamente</p>
+	</section>
+</Layout>
+
+<style>
+	.encabezado {
+		row-gap: 1.25rem;
+		padding-top: clamp(2.5rem, 6vw, 4.5rem);
+	}
+
+	.encabezado__titulo,
+	.encabezado__bajada {
+		grid-column: 1 / -1;
+	}
+
+	.encabezado__bajada {
+		max-width: 36rem;
+		color: var(--color-muted);
+		font-size: 1.0625rem;
+		line-height: 1.55;
+	}
+
+	.proximamente {
+		padding-block: 3rem 10rem;
+	}
+
+	@media (min-width: 64rem) {
+		.encabezado__bajada {
+			grid-column: 1 / 7;
+		}
+	}
+</style>
