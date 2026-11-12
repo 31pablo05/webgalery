@@ -1,0 +1,102 @@
+---
+import Imagen from '../home/Imagen.astro'
+import ListadoSeries from '../series/ListadoSeries.astro'
+import ColeccionObras from '../series/ColeccionObras.astro'
+import { rutas } from '../../lib/rutas.js'
+
+const { disciplina, series = [], obras = [] } = Astro.props
+const papel = disciplina?.slug === 'obras-sobre-papel'
+const vacia = series.length === 0 && obras.length === 0
+---
+
+<article class="disciplina">
+	<header class="disciplina__encabezado contenedor">
+		<p class="label">Disciplina</p>
+		<h1 class="page-title">{disciplina.nombre}</h1>
+		{disciplina.descripcion && <p class="t-texto medida disciplina__texto">{disciplina.descripcion}</p>}
+		{
+			disciplina.portada && (
+				<div class="disciplina__portada">
+					<Imagen
+						source={disciplina.portada}
+						alt={disciplina.portada?.alt || disciplina.nombre}
+						width={1200}
+						marco="portada"
+						proporcion="horizontal"
+						priority
+						sizes="(min-width: 64rem) 42rem, 100vw"
+					/>
+				</div>
+			)
+		}
+	</header>
+
+	{
+		series.length > 0 && (
+			<section class="disciplina__bloque contenedor" aria-labelledby="disciplina-series">
+				<h2 id="disciplina-series" class="titulo-seccion">Series</h2>
+				<ListadoSeries series={series} />
+			</section>
+		)
+	}
+
+	{
+		obras.length > 0 && (
+			<section class="disciplina__bloque contenedor" aria-labelledby="disciplina-obras">
+				<h2 id="disciplina-obras" class="titulo-seccion">Obras</h2>
+				<ColeccionObras obras={obras} papel={papel} prioridad={disciplina.portada ? 0 : 1} />
+			</section>
+		)
+	}
+
+	{
+		vacia && (
+			<p class="t-texto disciplina__vacio contenedor">Todavía no hay series ni obras publicadas en esta disciplina.</p>
+		)
+	}
+
+	<p class="disciplina__resto contenedor">
+		<a class="detalle-volver__link" href={rutas.obras}>
+			<span class="detalle-volver__flecha" aria-hidden="true">←</span>
+			Toda la obra
+		</a>
+	</p>
+</article>
+
+<style>
+	.disciplina {
+		padding-bottom: clamp(3rem, 6vw, 5rem);
+	}
+
+	.disciplina__encabezado {
+		display: grid;
+		justify-items: start;
+		gap: 0.85rem;
+		padding-top: clamp(2.5rem, 6vw, 4.5rem);
+	}
+
+	.disciplina__texto {
+		margin-top: 0.35rem;
+	}
+
+	.disciplina__portada {
+		width: min(100%, 42rem);
+		margin-top: 1.25rem;
+	}
+
+	.disciplina__bloque {
+		display: grid;
+		gap: 1.75rem;
+		padding-top: clamp(2.5rem, 5vw, 4rem);
+	}
+
+	.disciplina__vacio {
+		max-width: 36rem;
+		margin-top: 1.5rem;
+		color: var(--gris);
+	}
+
+	.disciplina__resto {
+		margin-top: clamp(2.5rem, 5vw, 4rem);
+	}
+</style>

@@ -1,5 +1,6 @@
 ---
 import Imagen from './Imagen.astro'
+import ObraPlaceholder from '../obras/ObraPlaceholder.astro'
 import Flecha from '../layout/Flecha.astro'
 import ReproducirVideo from './ReproducirVideo.jsx'
 import { rutas } from '../../lib/rutas.js'
@@ -19,27 +20,45 @@ const datosVideo = reproducible ? { titulo: video.titulo, vimeoId: video.vimeoId
 
 <section class="dupla contenedor" aria-label="Audiovisual y obras sobre papel">
 	<article class="bloque bloque--av ctx-azul ctx-azul--profundo textura textura--sutil fade-in" aria-labelledby="av-titulo">
-		<div class="bloque__imagen bloque__imagen--fundida">
+		<div class="bloque__imagen bloque__imagen--fundida" data-marco-caja={portadaVideo ? '' : undefined}>
 			{
 				portadaVideo ? (
-					<img
-						src={portadaVideo.src}
-						srcset={portadaVideo.srcset || undefined}
-						sizes="(min-width: 64rem) 30vw, 100vw"
-						alt={portadaVideo.alt || `Fotograma de ${video.titulo}`}
-						width="1280"
-						height="720"
-						loading="lazy"
-						decoding="async"
-					/>
+					<>
+						<img
+							src={portadaVideo.src}
+							srcset={portadaVideo.srcset || undefined}
+							sizes="(min-width: 64rem) 30vw, 100vw"
+							alt={portadaVideo.alt || `Fotograma de ${video.titulo}`}
+							width="1280"
+							height="720"
+							loading="lazy"
+							decoding="async"
+							data-marco
+						/>
+						<ObraPlaceholder
+							class="marco__pendiente marco__pendiente--espera"
+							llenar
+							proporcion="horizontal"
+							titulo={video.titulo}
+						/>
+					</>
 				) : (
-					respaldo && <Imagen source={respaldo} alt={respaldo.alt || ''} width={900} height={640} sizes="(min-width: 64rem) 30vw, 100vw" />
+					<Imagen
+						source={respaldo}
+						alt={respaldo?.alt || 'Audiovisual'}
+						titulo="Audiovisual"
+						width={900}
+						height={640}
+						marco="audiovisual"
+						proporcion="horizontal"
+						sizes="(min-width: 64rem) 30vw, 100vw"
+					/>
 				)
 			}
 			{reproducible && <ReproducirVideo client:visible video={datosVideo} />}
 		</div>
 		<div class="bloque__texto">
-			<h2 id="av-titulo" class="t-seccion">Audiovisual</h2>
+			<h2 id="av-titulo" class="t-display bloque__nombre">Audiovisual</h2>
 			{textoAudiovisual && <p class="t-texto bloque__descripcion">{textoAudiovisual}</p>}
 			<a class="btn btn-contorno bloque__boton" href={rutas.audiovisual}>
 				Ver audiovisual
@@ -51,19 +70,20 @@ const datosVideo = reproducible ? { titulo: video.titulo, vimeoId: video.vimeoId
 	{
 		papel && (
 			<article class="bloque bloque--papel ctx-marfil fade-in" aria-labelledby="papel-titulo">
-				{papel.portada && (
-					<div class="bloque__imagen">
-						<Imagen
-							source={papel.portada}
-							alt={papel.portada.alt || papel.nombre}
-							width={800}
-							height={600}
-							sizes="(min-width: 64rem) 22vw, 100vw"
-						/>
-					</div>
-				)}
+				<div class="bloque__imagen">
+					<Imagen
+						source={papel.portada}
+						alt={papel.portada?.alt || papel.nombre}
+						titulo={papel.nombre}
+						width={800}
+						height={600}
+						marco="portada"
+						proporcion="horizontal"
+						sizes="(min-width: 64rem) 22vw, 100vw"
+					/>
+				</div>
 				<div class="bloque__texto">
-					<h2 id="papel-titulo" class="t-seccion">
+					<h2 id="papel-titulo" class="t-display bloque__nombre">
 						{papel.nombre}
 					</h2>
 					{papel.descripcion && <p class="t-texto bloque__descripcion">{papel.descripcion}</p>}
@@ -80,6 +100,7 @@ const datosVideo = reproducible ? { titulo: video.titulo, vimeoId: video.vimeoId
 <style>
 	.dupla {
 		display: grid;
+		align-items: start;
 		gap: 1rem;
 		padding-top: var(--bloque);
 	}
@@ -91,12 +112,21 @@ const datosVideo = reproducible ? { titulo: video.titulo, vimeoId: video.vimeoId
 
 	.bloque__imagen {
 		position: relative;
-		aspect-ratio: 16 / 10;
+		aspect-ratio: 4 / 3;
 		overflow: hidden;
 	}
 
+	.bloque--av .bloque__imagen {
+		aspect-ratio: 2.2 / 1;
+	}
+
+	.bloque__nombre {
+		color: inherit;
+		font-size: clamp(2rem, 3vw, 2.75rem);
+	}
+
 	.bloque__imagen > img,
-	.bloque__imagen :global(.lqip) {
+	.bloque__imagen :global(.marco) {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -110,6 +140,11 @@ const datosVideo = reproducible ? { titulo: video.titulo, vimeoId: video.vimeoId
 		mask-image: var(--mascara-abajo);
 		-webkit-mask-size: 100% 100%;
 		mask-size: 100% 100%;
+	}
+
+	.bloque__imagen:has(.is-vacia) {
+		-webkit-mask-image: none;
+		mask-image: none;
 	}
 
 	.bloque__texto {
@@ -170,37 +205,35 @@ const datosVideo = reproducible ? { titulo: video.titulo, vimeoId: video.vimeoId
 		outline-offset: 4px;
 	}
 
-	/* Tablet: cada bloque con texto e imagen lado a lado. */
+	/* Tablet: el audiovisual pone el fotograma a la izquierda, en su proporción. El papel apila la pieza. */
 	@media (min-width: 48rem) {
-		.bloque {
-			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-			min-height: 16rem;
+		.bloque--av {
+			grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr);
+			align-items: center;
 		}
 
-		.bloque__imagen {
-			grid-column: 2;
-			grid-row: 1;
-			aspect-ratio: auto;
-		}
-
-		.bloque__texto {
+		.bloque--av .bloque__imagen {
 			grid-column: 1;
 			grid-row: 1;
-			padding: 2rem 1.5rem 2rem 2rem;
+			aspect-ratio: 2.2 / 1;
 		}
 
-		/* La imagen del audiovisual se funde con el azul hacia la izquierda, con borde irregular. */
-		.bloque__imagen--fundida {
-			margin-left: -18%;
-			-webkit-mask-image: var(--mascara-izquierda);
-			mask-image: var(--mascara-izquierda);
+		.bloque--av .bloque__texto {
+			grid-column: 2;
+			grid-row: 1;
+			padding: 1.5rem 1.75rem 1.5rem 1.25rem;
+		}
+
+		.bloque--av .bloque__imagen--fundida {
+			margin: 0;
+			-webkit-mask-image: linear-gradient(90deg, #000 72%, transparent);
+			mask-image: linear-gradient(90deg, #000 72%, transparent);
 		}
 	}
 
-	/* Escritorio: los dos bloques lado a lado, 52/48. */
 	@media (min-width: 64rem) {
 		.dupla {
-			grid-template-columns: 52fr 48fr;
+			grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
 			gap: 1.25rem;
 		}
 
@@ -208,16 +241,8 @@ const datosVideo = reproducible ? { titulo: video.titulo, vimeoId: video.vimeoId
 			grid-template-columns: 1fr;
 		}
 
-		.bloque--av {
-			grid-template-columns: 45fr 55fr;
-		}
-
-		.bloque--papel {
-			grid-template-columns: 55fr 45fr;
-		}
-
 		.bloque__texto {
-			padding: 2.25rem 1.5rem 2.25rem 2.5rem;
+			padding: 2rem 2rem 2.25rem;
 		}
 	}
 

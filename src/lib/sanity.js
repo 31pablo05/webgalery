@@ -138,15 +138,36 @@ export function imagenDisponible(source) {
 }
 
 function obrasDemo() {
-  return demo.obras.filter((obra) => imagenDisponible(obra.imagenPrincipal))
+  return demo.obras.filter((obra) => obra?.titulo && obra.publicada !== false)
+}
+
+// Píxeles reales de la imagen, si están en el archivo o en la referencia. Sin ellos, null:
+// no se inventa una proporción a partir de una captura ni de un tamaño de pantalla.
+export function relacionConfiable(imagen) {
+  const ref = imagen?.asset?._id || imagen?.asset?._ref || ''
+  const meta = imagen?.asset?.metadata?.dimensions
+  const medida = String(ref).match(/-(\d+)x(\d+)-/)
+  let ancho = Number(meta?.width) || (medida ? Number(medida[1]) : 0)
+  let alto = Number(meta?.height) || (medida ? Number(medida[2]) : 0)
+  if (!(ancho > 0) || !(alto > 0)) return null
+  const recorte = imagen?.crop
+  if (recorte) {
+    ancho = Math.max(1, Math.round(ancho * (1 - (recorte.left || 0) - (recorte.right || 0))))
+    alto = Math.max(1, Math.round(alto * (1 - (recorte.top || 0) - (recorte.bottom || 0))))
+  }
+  return { ancho, alto }
 }
 
 export async function fetchObras(filtro = '', params = {}) {
   if (enDemo) return obrasDemo()
-  const publicadas = `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc)`
+  const publicadas = `*[_type == "obra" && ${VISIBLE}] | order(coalesce(ordenGaleria, 999999) asc)`
   const query = filtro ? `${publicadas}[${filtro}]` : publicadas
   return client.fetch(query, params)
 }
+
+// Una obra publicada: no es borrador de Sanity y no está marcada como no publicada.
+// Si el campo todavía no existe en un documento viejo, se considera publicada.
+const VISIBLE = `!(_id in path("drafts.**")) && coalesce(publicada, true) == true`
 
 // Además de la referencia, trae medidas, la vista borrosa (LQIP) y el color dominante de cada imagen.
 const metadatosImagen = `metadata {
@@ -184,7 +205,15 @@ async function completarImagenesDemo() {
     if (String(valor.asset?._ref || '').startsWith('image-demo-')) imagenes.push(valor)
     else Object.values(valor).forEach(visitar)
   }
-  visitar([demo.obras, demo.artista, demo.configuracion, demo.series, demo.disciplinas, demo.diapositivasHero])
+  visitar([
+    demo.obras,
+    demo.artista,
+    demo.configuracion,
+    demo.series,
+    demo.disciplinas,
+    demo.diapositivasHero,
+    demo.proyectosArtisticos,
+  ])
 
   const calculados = new Map()
   await Promise.all(
@@ -344,7 +373,7 @@ export async function fetchInicio() {
       }
     }`),
     client.fetch(
-      `*[_type == "obra" && destacadaEnInicio == true && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) [0...4] {
+      `*[_type == "obra" && destacadaEnInicio == true && !(_id in path("drafts.**")) && coalesce(publicada, true) == true] | order(coalesce(ordenGaleria, 999999) asc) [0...4] {
         titulo,
         "slug": slug.current,
         anio,
@@ -412,6 +441,15 @@ function versiones(source, anchoNatural, anchos) {
   }
 }
 
+function referenciaNombrada(valor, catalogo) {
+  if (!valor) return null
+  const slug = typeof valor === 'string' ? valor : valor.slug || ''
+  if (!slug) return null
+  const conocida = (catalogo || []).find((item) => item.slug === slug)
+  const nombre = (typeof valor === 'object' && valor.nombre) || conocida?.nombre || ''
+  return {nombre, slug}
+}
+
 function prepararObraGaleria(obra) {
   const imagen = obra.imagenPrincipal
   const ref = imagen?.asset?._id || imagen?.asset?._ref || ''
@@ -424,9 +462,12 @@ function prepararObraGaleria(obra) {
     estado: obra.estado || '',
     categoria: obra.categoria || '',
     proyecto: (obra.proyecto || '').trim(),
+    disciplina: referenciaNombrada(obra.disciplina, demo.disciplinas),
+    serie: referenciaNombrada(obra.serie, demo.series),
     imagen: null,
+    relacion: relacionConfiable(imagen),
   }
-  if (!ref) return base
+  if (!ref || !imagenDisponible(imagen)) return base
 
   const source = {
     alt: imagen.alt,
@@ -446,6 +487,7 @@ function prepararObraGaleria(obra) {
       alt: imagen.alt || obra.titulo || '',
       ...cargaDe(imagen),
     },
+    relacion: { ancho, alto },
   }
 }
 
@@ -482,7 +524,7 @@ export async function fetchGaleria() {
       bajadaGaleria
     }`),
     client.fetch(
-      `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) {
+      `*[_type == "obra" && ${VISIBLE}] | order(coalesce(ordenGaleria, 999999) asc) {
         titulo,
         "slug": slug.current,
         anio,
@@ -491,6 +533,8 @@ export async function fetchGaleria() {
         estado,
         categoria,
         proyecto,
+        "serie": serie->{ nombre, "slug": slug.current },
+        "disciplina": disciplina->{ nombre, "slug": slug.current },
         imagenPrincipal {
           alt,
           crop,
@@ -530,6 +574,7 @@ function fuenteDe(imagen) {
 }
 
 function fotoDetalle(imagen, titulo = '') {
+  if (!imagenDisponible(imagen)) return null
   const fuente = fuenteDe(imagen)
   if (!fuente) return null
   const visor = versiones(fuente.source, fuente.ancho, [700, 1400])
@@ -565,22 +610,46 @@ function prepararObraDetalle(obra) {
     proyecto: (obra.proyecto || '').trim(),
     descripcionCorta: obra.descripcionCorta || '',
     imagenes: fotos,
-    imagenPrincipal: obra.imagenPrincipal?.asset ? obra.imagenPrincipal : null,
+    relacion: relacionConfiable(obra.imagenPrincipal),
+    imagenPrincipal: imagenDisponible(obra.imagenPrincipal) ? obra.imagenPrincipal : null,
+    serie: obra.serie?.slug ? {nombre: obra.serie.nombre || '', slug: obra.serie.slug} : null,
+    ordenEnSerie: obra.ordenEnSerie ?? null,
+    disciplina: obra.disciplina?.slug
+      ? {nombre: obra.disciplina.nombre || '', slug: obra.disciplina.slug}
+      : null,
+    altoCm: Number(obra.altoCm) > 0 ? Number(obra.altoCm) : null,
+    anchoCm: Number(obra.anchoCm) > 0 ? Number(obra.anchoCm) : null,
+    precio: obra.mostrarPrecio && Number(obra.precio) >= 0 && obra.precio != null ? Number(obra.precio) : null,
+    mostrarPrecio: obra.mostrarPrecio === true && obra.precio != null,
   }
 }
 
-// "Más obras": 3 obras, primero las del mismo proyecto; se muestran en su proporción original.
-export function elegirRelacionadas(obras, actual) {
-  const resto = obras.filter((obra) => obra.slug !== actual.slug && obra.imagenPrincipal)
-  const mismas = actual.proyecto ? resto.filter((obra) => obra.proyecto === actual.proyecto) : []
-  const otras = actual.proyecto ? resto.filter((obra) => obra.proyecto !== actual.proyecto) : resto
-  return [...mismas, ...otras].slice(0, 3).map((obra) => ({
+function resumenRelacionada(obra) {
+  return {
     titulo: obra.titulo,
     slug: obra.slug,
     anio: obra.anio,
-    proyecto: obra.proyecto,
+    disciplina: obra.disciplina?.nombre || '',
     imagen: obra.imagenPrincipal,
-  }))
+    relacion: obra.relacion || relacionConfiable(obra.imagenPrincipal),
+  }
+}
+
+// Si la obra está en una serie, solo las otras obras de esa serie, en su orden.
+// Si no, hasta 3: primero la misma disciplina y después el resto del catálogo.
+export function elegirRelacionadas(obras, actual) {
+  const resto = obras.filter((obra) => obra.slug !== actual.slug)
+  if (actual.serie?.slug) {
+    return resto
+      .filter((obra) => obra.serie?.slug === actual.serie.slug)
+      .sort((a, b) => (a.ordenEnSerie ?? 999999) - (b.ordenEnSerie ?? 999999))
+      .map(resumenRelacionada)
+  }
+  const mismaDisciplina = actual.disciplina?.slug
+    ? resto.filter((obra) => obra.disciplina?.slug === actual.disciplina.slug)
+    : []
+  const otras = resto.filter((obra) => !mismaDisciplina.some((item) => item.slug === obra.slug))
+  return [...mismaDisciplina, ...otras].slice(0, 3).map(resumenRelacionada)
 }
 
 const imagenConMedidas = imagen
@@ -588,6 +657,25 @@ const imagenConMedidas = imagen
 // Obra vecina en el orden de la galería, para recorrer el catálogo con Anterior / Siguiente.
 function vecina(obra) {
   return obra ? { titulo: obra.titulo, slug: obra.slug } : null
+}
+
+function vecinasEnSerie(vistas, actual) {
+  if (!actual?.serie?.slug) return null
+  const hermanas = vistas
+    .filter((item) => item.serie?.slug === actual.serie.slug)
+    .sort((a, b) => (a.ordenEnSerie ?? 999999) - (b.ordenEnSerie ?? 999999))
+  const indice = hermanas.findIndex((item) => item.slug === actual.slug)
+  if (indice < 0) return null
+  return {
+    serie: {
+      nombre: actual.serie.nombre || '',
+      slug: actual.serie.slug,
+      href: rutaSerie(actual.serie.slug),
+    },
+    anterior: indice > 0 ? vecina(hermanas[indice - 1]) : null,
+    siguiente: indice < hermanas.length - 1 ? vecina(hermanas[indice + 1]) : null,
+    posicion: {actual: indice + 1, total: hermanas.length},
+  }
 }
 
 function paginasDe(vistas, artista, configuracion) {
@@ -608,10 +696,17 @@ function paginasDe(vistas, artista, configuracion) {
         proyecto: obra.proyecto,
         descripcionCorta: obra.descripcionCorta,
         imagenes: obra.imagenes,
+        relacion: obra.relacion,
+        serie: obra.serie?.slug ? {nombre: obra.serie.nombre || '', slug: obra.serie.slug} : null,
+        altoCm: obra.altoCm,
+        anchoCm: obra.anchoCm,
+        precio: obra.precio,
+        mostrarPrecio: obra.mostrarPrecio === true,
       },
       anterior: vecina(vistas[indice - 1]),
       siguiente: vecina(vistas[indice + 1]),
       relacionadas: elegirRelacionadas(vistas, obra),
+      enSerie: vecinasEnSerie(vistas, obra),
       artista: {
         nombre: artista?.nombre || '',
         subtitulo: artista?.subtitulo || '',
@@ -655,7 +750,7 @@ export async function fetchPaginasObra() {
       envioColeccion
     }`),
     client.fetch(
-      `*[_type == "obra" && !(_id in path("drafts.**"))] | order(coalesce(ordenGaleria, 999999) asc) {
+      `*[_type == "obra" && ${VISIBLE}] | order(coalesce(ordenGaleria, 999999) asc) {
         titulo,
         "slug": slug.current,
         anio,
@@ -665,6 +760,13 @@ export async function fetchPaginasObra() {
         categoria,
         proyecto,
         descripcionCorta,
+        ordenEnSerie,
+        altoCm,
+        anchoCm,
+        precio,
+        mostrarPrecio,
+        "serie": serie->{ nombre, "slug": slug.current },
+        "disciplina": disciplina->{ nombre, "slug": slug.current },
         imagenPrincipal ${imagenConMedidas},
         imagenesAdicionales[] ${imagenConMedidas}
       }`,
@@ -915,16 +1017,51 @@ export async function fetchContacto() {
 	return armarContacto(artista, configuracion)
 }
 
-// ——— Inicio (Etapa 1) ———
-// En modo demo devuelven los datos de src/data/demo.js con la misma forma que tendrán desde Sanity.
-// Las consultas GROQ de diapositivas, series y disciplinas se escriben en la Etapa 2: hasta entonces,
-// con Sanity configurado, devuelven vacío y el Inicio oculta esas secciones.
+// ——— Series, disciplinas e inicio ———
+// La forma de cada función es la misma con los datos de demo y con Sanity.
 
 const porOrden = (a, b) => (a.orden ?? 999999) - (b.orden ?? 999999)
 
-function disciplinaDe(slug) {
-  const disciplina = (demo.disciplinas || []).find((item) => item.slug === slug)
-  return disciplina ? {nombre: disciplina.nombre, slug: disciplina.slug} : null
+const proyeccionSerie = `{
+  nombre,
+  "slug": slug.current,
+  anio,
+  tecnicaGeneral,
+  descripcion,
+  destacada,
+  principalInicio,
+  orden,
+  portada ${imagen},
+  "disciplina": disciplina->{ nombre, "slug": slug.current },
+  "cantidadObras": count(*[_type == "obra" && ${VISIBLE} && serie._ref == ^._id])
+}`
+
+const proyeccionObraLista = `{
+  titulo,
+  "slug": slug.current,
+  anio,
+  tecnica,
+  dimensiones,
+  estado,
+  categoria,
+  proyecto,
+  ordenEnSerie,
+  ordenGaleria,
+  imagenPrincipal ${imagen},
+  "serie": serie->{ nombre, "slug": slug.current },
+  "disciplina": disciplina->{ nombre, "slug": slug.current }
+}`
+
+function normalizarDisciplina(valor) {
+  if (!valor) return null
+  if (typeof valor === 'string') {
+    const encontrada = (demo.disciplinas || []).find((item) => item.slug === valor)
+    return encontrada ? {nombre: encontrada.nombre, slug: encontrada.slug} : null
+  }
+  const slug = valor.slug || ''
+  const nombre = valor.nombre || ''
+  if (!slug && !nombre) return null
+  return {nombre, slug}
 }
 
 function prepararDisciplina(disciplina) {
@@ -934,27 +1071,30 @@ function prepararDisciplina(disciplina) {
     href: rutaDisciplina(disciplina.slug),
     descripcion: String(disciplina.descripcion || '').trim(),
     mostrarEnMenu: disciplina.mostrarEnMenu !== false,
+    orden: disciplina.orden ?? null,
     portada: imagenDisponible(disciplina.portada) ? disciplina.portada : null,
   }
 }
 
-export async function fetchDisciplinas() {
-  if (!enDemo) return []
-  return [...(demo.disciplinas || [])].sort(porOrden).map(prepararDisciplina)
-}
-
 function prepararSerie(serie, obras) {
-  const cantidadObras = obras.filter((obra) => obra.serie?.slug === serie.slug).length
+  const cantidadObras = Number.isFinite(serie.cantidadObras)
+    ? serie.cantidadObras
+    : (obras || []).filter((obra) => obra.serie?.slug === serie.slug).length
+  const descripcion =
+    typeof serie.descripcion === 'string' ? serie.descripcion.trim() : textoDePortable(serie.descripcion)
   return {
     nombre: serie.nombre || '',
     slug: serie.slug || '',
     href: rutaSerie(serie.slug),
-    disciplina: serie.disciplina ? disciplinaDe(serie.disciplina) : null,
+    disciplina: normalizarDisciplina(serie.disciplina),
     portada: imagenDisponible(serie.portada) ? serie.portada : null,
-    descripcion: textoDePortable(serie.descripcion),
+    descripcion,
     anio: String(serie.anio || '').trim(),
     tecnicaGeneral: String(serie.tecnicaGeneral || '').trim(),
     cantidadObras,
+    destacada: serie.destacada === true,
+    principalInicio: serie.principalInicio === true,
+    orden: serie.orden ?? null,
   }
 }
 
@@ -962,43 +1102,337 @@ function seriesPublicadasDemo() {
   return [...(demo.series || [])].filter((serie) => serie.publicada !== false).sort(porOrden)
 }
 
-export async function fetchSeriePrincipal() {
-  if (!enDemo) return null
-  const serie = seriesPublicadasDemo().find((item) => item.principalInicio)
-  return serie ? prepararSerie(serie, obrasDemo()) : null
+function obraDeLista(obra) {
+  return {
+    ...prepararObraGaleria(obra),
+    ordenEnSerie: obra.ordenEnSerie ?? null,
+  }
 }
 
-// Hasta 3 series destacadas. La principal ya tiene su banda en el Inicio: se puede excluir para no repetir su portada.
+function obrasDeSerieDemo(slug) {
+  return obrasDemo()
+    .filter((obra) => obra.serie?.slug === slug)
+    .sort((a, b) => (a.ordenEnSerie ?? 999999) - (b.ordenEnSerie ?? 999999))
+    .map(obraDeLista)
+}
+
+function serieVecina(serie) {
+  if (!serie) return null
+  return {nombre: serie.nombre || '', slug: serie.slug || '', href: rutaSerie(serie.slug)}
+}
+
+export async function fetchDisciplinas() {
+  if (enDemo) return [...(demo.disciplinas || [])].sort(porOrden).map(prepararDisciplina)
+  const disciplinas = await client.fetch(
+    `*[_type == "disciplina" && !(_id in path("drafts.**"))] | order(coalesce(orden, 999999) asc) {
+      nombre,
+      "slug": slug.current,
+      descripcion,
+      mostrarEnMenu,
+      orden,
+      portada ${imagen}
+    }`,
+  )
+  return (disciplinas || []).map(prepararDisciplina)
+}
+
+export async function fetchSeries({disciplina = ''} = {}) {
+  if (enDemo) {
+    return seriesPublicadasDemo()
+      .filter((serie) => !disciplina || serie.disciplina === disciplina)
+      .map((serie) => prepararSerie(serie, obrasDemo()))
+  }
+  const series = await client.fetch(
+    `*[_type == "serie" && ${VISIBLE} && ($disciplina == "" || disciplina->slug.current == $disciplina)]
+      | order(coalesce(orden, 999999) asc) ${proyeccionSerie}`,
+    {disciplina},
+  )
+  return (series || []).map((serie) => prepararSerie(serie))
+}
+
+export async function fetchSerie(slug) {
+  if (!slug) return null
+  if (enDemo) {
+    const series = seriesPublicadasDemo()
+    const indice = series.findIndex((item) => item.slug === slug)
+    if (indice < 0) return null
+    return {
+      ...prepararSerie(series[indice], obrasDemo()),
+      obras: obrasDeSerieDemo(slug),
+      anterior: serieVecina(series[indice - 1]),
+      siguiente: serieVecina(series[indice + 1]),
+    }
+  }
+  const serie = await client.fetch(`*[_type == "serie" && slug.current == $slug && ${VISIBLE}][0] ${proyeccionSerie}`, {slug})
+  if (!serie) return null
+  const [obras, anterior, siguiente] = await Promise.all([
+    client.fetch(
+      `*[_type == "obra" && serie->slug.current == $slug && ${VISIBLE}] | order(coalesce(ordenEnSerie, 999999) asc) ${proyeccionObraLista}`,
+      {slug},
+    ),
+    client.fetch(
+      `*[_type == "serie" && ${VISIBLE} && coalesce(orden, 999999) < $orden] | order(coalesce(orden, 999999) desc)[0] ${proyeccionSerie}`,
+      {orden: serie.orden ?? 999999},
+    ),
+    client.fetch(
+      `*[_type == "serie" && ${VISIBLE} && coalesce(orden, 999999) > $orden] | order(coalesce(orden, 999999) asc)[0] ${proyeccionSerie}`,
+      {orden: serie.orden ?? 999999},
+    ),
+  ])
+  return {
+    ...prepararSerie(serie),
+    obras: (obras || []).map(obraDeLista),
+    anterior: anterior ? serieVecina(prepararSerie(anterior)) : null,
+    siguiente: siguiente ? serieVecina(prepararSerie(siguiente)) : null,
+  }
+}
+
+export async function fetchObrasPorSerie(slug) {
+  if (!slug) return []
+  if (enDemo) return obrasDeSerieDemo(slug)
+  const obras = await client.fetch(
+    `*[_type == "obra" && serie->slug.current == $slug && ${VISIBLE}] | order(coalesce(ordenEnSerie, 999999) asc) ${proyeccionObraLista}`,
+    {slug},
+  )
+  return (obras || []).map(obraDeLista)
+}
+
+export async function fetchObrasPorDisciplina(slug) {
+  if (!slug) return []
+  if (enDemo) {
+    return obrasDemo()
+      .filter((obra) => obra.disciplina?.slug === slug)
+      .map(obraDeLista)
+  }
+  const obras = await client.fetch(
+    `*[_type == "obra" && disciplina->slug.current == $slug && ${VISIBLE}] | order(coalesce(ordenGaleria, 999999) asc) ${proyeccionObraLista}`,
+    {slug},
+  )
+  return (obras || []).map(obraDeLista)
+}
+
+export async function fetchDisciplina(slug) {
+  if (!slug) return null
+  const disciplinas = await fetchDisciplinas()
+  const disciplina = disciplinas.find((item) => item.slug === slug)
+  if (!disciplina) return null
+  const [series, obras, inicio] = await Promise.all([
+    fetchSeries({disciplina: slug}),
+    fetchObrasPorDisciplina(slug),
+    fetchInicio(),
+  ])
+  return {
+    disciplina,
+    series,
+    obras: (obras || []).filter((obra) => !obra.serie?.slug),
+    artista: inicio?.artista || null,
+    configuracion: inicio?.configuracion || null,
+  }
+}
+
+export async function fetchSeriePrincipal() {
+  if (enDemo) {
+    const serie = seriesPublicadasDemo().find((item) => item.principalInicio)
+    return serie ? prepararSerie(serie, obrasDemo()) : null
+  }
+  const serie = await client.fetch(
+    `*[_type == "serie" && principalInicio == true && ${VISIBLE}] | order(coalesce(orden, 999999) asc)[0] ${proyeccionSerie}`,
+  )
+  return serie ? prepararSerie(serie) : null
+}
+
+// Hasta 3 series destacadas. La principal ya tiene su banda en el Inicio: se puede excluir para no repetirla.
 export async function fetchSeriesDestacadas({excluir = ''} = {}) {
-  if (!enDemo) return []
-  const obras = obrasDemo()
-  return seriesPublicadasDemo()
-    .filter((serie) => serie.destacada && serie.slug !== excluir)
-    .slice(0, 3)
-    .map((serie) => prepararSerie(serie, obras))
+  if (enDemo) {
+    const obras = obrasDemo()
+    return seriesPublicadasDemo()
+      .filter((serie) => serie.destacada && serie.slug !== excluir)
+      .slice(0, 3)
+      .map((serie) => prepararSerie(serie, obras))
+  }
+  const series = await client.fetch(
+    `*[_type == "serie" && destacada == true && slug.current != $excluir && ${VISIBLE}]
+      | order(coalesce(orden, 999999) asc)[0...3] ${proyeccionSerie}`,
+    {excluir},
+  )
+  return (series || []).map((serie) => prepararSerie(serie))
+}
+
+export async function fetchVecinasEnSerie(slug) {
+  if (!slug) return {anterior: null, siguiente: null}
+  if (enDemo) {
+    const vistas = vistasDe(obrasDemo())
+    const actual = vistas.find((obra) => obra.slug === slug)
+    return vecinasEnSerie(vistas, actual)
+  }
+  const actual = await client.fetch(
+    `*[_type == "obra" && slug.current == $slug && ${VISIBLE}][0]{ "slug": slug.current, "serieId": serie._ref }`,
+    {slug},
+  )
+  if (!actual?.serieId) return {anterior: null, siguiente: null}
+  const hermanas = await client.fetch(
+    `*[_type == "obra" && serie._ref == $serieId && ${VISIBLE}] | order(coalesce(ordenEnSerie, 999999) asc) {
+      titulo,
+      "slug": slug.current
+    }`,
+    {serieId: actual.serieId},
+  )
+  return vecinasEnSerie(
+    (hermanas || []).map((obra) => ({...obra, serie: {slug: 'misma'}})),
+    {...actual, serie: {slug: 'misma'}},
+  )
+}
+
+export async function fetchFicha(slug) {
+  const paginas = await fetchPaginasObra()
+  const pagina = paginas.find((item) => item.params.slug === slug)
+  return pagina ? pagina.props : null
+}
+
+function prepararProyectoArtistico(proyecto) {
+  const obras = (proyecto.obras || [])
+    .map((obra) => ({
+      titulo: obra.titulo || obra.nombre || '',
+      slug: obra.slug?.current || obra.slug || '',
+    }))
+    .filter((obra) => obra.slug)
+  return {
+    tipo: proyecto.tipo || proyecto._type || '',
+    nombre: proyecto.nombre || '',
+    slug: proyecto.slug?.current || proyecto.slug || '',
+    anio: String(proyecto.anio || '').trim(),
+    lugar: String(proyecto.lugar || '').trim(),
+    descripcion: typeof proyecto.descripcion === 'string' ? proyecto.descripcion.trim() : textoDePortable(proyecto.descripcion),
+    portada: imagenDisponible(proyecto.portada) ? proyecto.portada : null,
+    obras,
+    orden: proyecto.orden ?? null,
+  }
+}
+
+export async function fetchProyectos() {
+  if (enDemo) {
+    return [...(demo.proyectosArtisticos || [])]
+      .filter((proyecto) => proyecto.publicada !== false)
+      .sort(porOrden)
+      .map(prepararProyectoArtistico)
+  }
+  const tipos = ['exposicion', 'performance', 'instalacion', 'accion']
+  const proyectos = await client.fetch(
+    `*[_type in $tipos && ${VISIBLE}] | order(coalesce(orden, 999999) asc) {
+      _type,
+      nombre,
+      "slug": slug.current,
+      anio,
+      lugar,
+      descripcion,
+      orden,
+      portada ${imagen},
+      obras[]->{ titulo, "slug": slug.current }
+    }`,
+    {tipos},
+  )
+  return (proyectos || []).map((proyecto) => prepararProyectoArtistico({...proyecto, tipo: proyecto._type}))
+}
+
+function hitosDe(lista) {
+  return (Array.isArray(lista) ? lista : [])
+    .map((item) => ({
+      periodo: String(item?.periodo || '').trim(),
+      titulo: String(item?.titulo || '').trim(),
+      detalle: String(item?.detalle || '').trim(),
+    }))
+    .filter((item) => item.periodo || item.titulo || item.detalle)
+}
+
+export async function fetchTrayectoria() {
+  const vacia = {
+    obrasExposiciones: [],
+    premiosBecasResidencias: [],
+    formacionAcademica: [],
+    formacionMovimiento: [],
+    charlasDocencia: [],
+  }
+  if (enDemo) {
+    return {
+      obrasExposiciones: hitosDe(demo.artista?.obrasExposiciones),
+      premiosBecasResidencias: hitosDe(demo.artista?.premiosBecasResidencias),
+      formacionAcademica: hitosDe(demo.artista?.formacionAcademica),
+      formacionMovimiento: hitosDe(demo.artista?.formacionMovimiento),
+      charlasDocencia: hitosDe(demo.artista?.charlasDocencia),
+    }
+  }
+  const artista = await client.fetch(`*[_id == "artista"][0]{
+    obrasExposiciones[]{ periodo, titulo, detalle },
+    premiosBecasResidencias[]{ periodo, titulo, detalle },
+    formacionAcademica[]{ periodo, titulo, detalle },
+    formacionMovimiento[]{ periodo, titulo, detalle },
+    charlasDocencia[]{ periodo, titulo, detalle }
+  }`)
+  if (!artista) return vacia
+  return {
+    obrasExposiciones: hitosDe(artista.obrasExposiciones),
+    premiosBecasResidencias: hitosDe(artista.premiosBecasResidencias),
+    formacionAcademica: hitosDe(artista.formacionAcademica),
+    formacionMovimiento: hitosDe(artista.formacionMovimiento),
+    charlasDocencia: hitosDe(artista.charlasDocencia),
+  }
+}
+
+function prepararDiapositiva(diapositiva, disciplinas) {
+  return {
+    id: diapositiva._id,
+    etiqueta: String(diapositiva.etiqueta || '').trim(),
+    titulo: String(diapositiva.titulo || '').trim(),
+    subtitulo: String(diapositiva.subtitulo || '').trim(),
+    textoBoton: String(diapositiva.textoBoton || '').trim(),
+    enlace: resolverEnlace(diapositiva.enlace, disciplinas),
+    imagen: diapositiva.imagen,
+  }
 }
 
 export async function fetchDiapositivasHero() {
-  if (!enDemo) return []
-  const disciplinas = (demo.disciplinas || []).map((item) => item.slug)
-  return [...(demo.diapositivasHero || [])]
-    .filter((diapositiva) => diapositiva.activa !== false && imagenDisponible(diapositiva.imagen))
-    .sort(porOrden)
-    .map((diapositiva) => ({
-      id: diapositiva._id,
-      etiqueta: String(diapositiva.etiqueta || '').trim(),
-      titulo: String(diapositiva.titulo || '').trim(),
-      subtitulo: String(diapositiva.subtitulo || '').trim(),
-      textoBoton: String(diapositiva.textoBoton || '').trim(),
-      enlace: resolverEnlace(diapositiva.enlace, disciplinas),
-      imagen: diapositiva.imagen,
-    }))
+  if (enDemo) {
+    const disciplinas = (demo.disciplinas || []).map((item) => item.slug)
+    return [...(demo.diapositivasHero || [])]
+      .filter((diapositiva) => diapositiva.activa !== false && imagenDisponible(diapositiva.imagen))
+      .sort(porOrden)
+      .map((diapositiva) => prepararDiapositiva(diapositiva, disciplinas))
+  }
+  const [diapositivas, disciplinas] = await Promise.all([
+    client.fetch(
+      `*[_type == "diapositivaHero" && coalesce(activa, true) == true && !(_id in path("drafts.**"))]
+        | order(coalesce(orden, 999999) asc) {
+          _id,
+          etiqueta,
+          titulo,
+          subtitulo,
+          textoBoton,
+          enlace,
+          imagen ${imagen}
+        }`,
+    ),
+    client.fetch(`*[_type == "disciplina" && !(_id in path("drafts.**"))].slug.current`),
+  ])
+  return (diapositivas || [])
+    .filter((diapositiva) => imagenDisponible(diapositiva.imagen))
+    .map((diapositiva) => prepararDiapositiva(diapositiva, disciplinas || []))
 }
 
 export async function fetchFraseInicio() {
   if (enDemo) return String(demo.artista?.fraseInicio || '').trim()
   const artista = await client.fetch(`*[_id == "artista"][0]{ fraseInicio }`)
   return String(artista?.fraseInicio || '').trim()
+}
+
+export async function fetchConfiguracionInicio() {
+  const [frase, diapositivas, seriePrincipal, video] = await Promise.all([
+    fetchFraseInicio(),
+    fetchDiapositivasHero(),
+    fetchSeriePrincipal(),
+    fetchVideoReciente(),
+  ])
+  const seriesDestacadas = await fetchSeriesDestacadas({excluir: seriePrincipal?.slug || ''})
+  return {frase, diapositivas, seriePrincipal, seriesDestacadas, video}
 }
 
 // El video más reciente, listo para el modal de Vimeo (o null si no hay ninguno).

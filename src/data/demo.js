@@ -48,6 +48,11 @@ function obra({
 	serie = '',
 	ordenEnSerie = null,
 	disciplina = '',
+	altoCm = null,
+	anchoCm = null,
+	precio = null,
+	mostrarPrecio = false,
+	publicada = true,
 }) {
 	return {
 		_type: 'obra',
@@ -56,12 +61,17 @@ function obra({
 		anio,
 		tecnica,
 		dimensiones,
+		altoCm,
+		anchoCm,
 		estado,
 		categoria,
 		proyecto,
 		descripcionCorta: descripcion,
 		destacadaEnInicio: destacada,
 		ordenGaleria: orden,
+		precio,
+		mostrarPrecio,
+		publicada,
 		// Referencias por slug, como las resuelve la consulta de Sanity (serie->slug, disciplina->slug).
 		serie: serie ? { slug: serie } : null,
 		ordenEnSerie,
@@ -71,7 +81,8 @@ function obra({
 	}
 }
 
-// Disciplinas: en Sanity son documentos, así se agrega una cuarta sin tocar código.
+// Las dos disciplinas que ya usa el menú. No son un catálogo cerrado: una nueva se crea en el Studio.
+// "Obras sobre papel" es el nombre con el que está armado el sitio; se puede renombrar desde el panel.
 export const disciplinas = [
 	{ _id: 'disciplina-pinturas', _type: 'disciplina', nombre: 'Pinturas', slug: 'pinturas', descripcion: '', orden: 10, mostrarEnMenu: true },
 	{
@@ -122,8 +133,6 @@ export const obras = [
 		alt: 'Composición fluorescente de trazos violetas, verdes y amarillos sobre un fondo oscuro.',
 		destacada: true,
 		orden: 30,
-		serie: 'serie-de-ejemplo-c',
-		ordenEnSerie: 1,
 	}),
 	obra({
 		titulo: 'Obra 02',
@@ -134,8 +143,6 @@ export const obras = [
 		alt: 'Obra experimental multicolor con trazos amarillos sobre un gran plano azul.',
 		destacada: true,
 		orden: 40,
-		serie: 'serie-de-ejemplo-c',
-		ordenEnSerie: 2,
 	}),
 	obra({
 		titulo: 'Obra 03',
@@ -146,10 +153,9 @@ export const obras = [
 		alt: 'Composición de líneas rojas y celestes sobre un fondo oscuro, con el texto «Portal Derecha».',
 		destacada: true,
 		orden: 50,
-		serie: 'serie-de-ejemplo-c',
-		ordenEnSerie: 3,
 	}),
-	// 09, 10 y 11: pinturas sobre tela confirmadas. Título, año, técnica y medidas, pendientes.
+	// 09, 10 y 11: pinturas sobre tela confirmadas. El título visible es un identificador provisional
+	// (Obra 04, 05, 06), no un título artístico. Año, técnica y medidas, pendientes.
 	// Fotos recortadas al borde de la tela con scripts/procesar-fotos.mjs.
 	obra({
 		titulo: 'Obra 04',
@@ -160,8 +166,6 @@ export const obras = [
 		alt: 'Pintura sobre tela: trazos negros sobre fondo blanco y un plano de veladuras azules a la izquierda.',
 		orden: 60,
 		disciplina: 'pinturas',
-		serie: 'serie-de-ejemplo-b',
-		ordenEnSerie: 1,
 	}),
 	// Las medidas de 10 y 11 se completan al procesar sus fotos (hasta entonces no se muestran).
 	obra({
@@ -173,8 +177,6 @@ export const obras = [
 		alt: 'Pintura sobre tela: un gran plano negro atravesado por una franja.',
 		orden: 70,
 		disciplina: 'pinturas',
-		serie: 'serie-de-ejemplo',
-		ordenEnSerie: 1,
 	}),
 	obra({
 		titulo: 'Obra 06',
@@ -185,25 +187,23 @@ export const obras = [
 		alt: 'Pintura sobre tela cruda.',
 		orden: 80,
 		disciplina: 'pinturas',
-		serie: 'serie-de-ejemplo',
-		ordenEnSerie: 2,
 	}),
 ]
 
 const imagenDe = (slug) => obras.find((item) => item.slug === slug)?.imagenPrincipal || null
-const TEXTO_SERIE_DEMO = 'Serie de demostración. El título y las obras se confirman con la artista.'
-
-// Series de ejemplo: nombres de demostración, nunca nombres que parezcan reales.
-// La relación obra–serie se guarda en la obra (obra.serie); la serie no lista sus obras.
+// «Una vez vi blanco» y «En qué sala te esperas» son los nombres confirmados.
+// El CV anota más de un año para cada una (tesis y muestras): el período queda vacío hasta que la artista lo precise.
+// Ninguna tiene portada ni cuadros asignados: no se vincula una foto de otra obra.
+// Las páginas viven en /series/[slug]. Ninguna serie tiene portada ni cuadros vinculados.
 export const series = [
 	{
-		_id: 'serie-de-ejemplo',
+		_id: 'una-vez-vi-blanco',
 		_type: 'serie',
-		nombre: 'Serie de ejemplo',
-		slug: 'serie-de-ejemplo',
-		disciplina: 'pinturas',
-		portada: imagenDe('obra-05'),
-		descripcion: [parrafo([{ texto: TEXTO_SERIE_DEMO }])],
+		nombre: 'Una vez vi blanco',
+		slug: 'una-vez-vi-blanco',
+		disciplina: '',
+		portada: null,
+		descripcion: [],
 		anio: '',
 		tecnicaGeneral: '',
 		orden: 10,
@@ -212,39 +212,24 @@ export const series = [
 		publicada: true,
 	},
 	{
-		_id: 'serie-de-ejemplo-b',
+		_id: 'en-que-sala-te-esperas',
 		_type: 'serie',
-		nombre: 'Serie de ejemplo B',
-		slug: 'serie-de-ejemplo-b',
-		disciplina: 'pinturas',
-		portada: imagenDe('obra-04'),
-		descripcion: [parrafo([{ texto: TEXTO_SERIE_DEMO }])],
+		nombre: 'En qué sala te esperas',
+		slug: 'en-que-sala-te-esperas',
+		disciplina: '',
+		portada: null,
+		descripcion: [],
 		anio: '',
 		tecnicaGeneral: '',
 		orden: 20,
-		destacada: true,
-		principalInicio: false,
-		publicada: true,
-	},
-	{
-		_id: 'serie-de-ejemplo-c',
-		_type: 'serie',
-		nombre: 'Serie de ejemplo C',
-		slug: 'serie-de-ejemplo-c',
-		disciplina: '',
-		portada: imagenDe('obra-02'),
-		descripcion: [parrafo([{ texto: TEXTO_SERIE_DEMO }])],
-		anio: '',
-		tecnicaGeneral: '',
-		orden: 30,
-		destacada: true,
+		destacada: false,
 		principalInicio: false,
 		publicada: true,
 	},
 ]
 
 // Diapositivas del hero: textos de demostración de diseño, editables (en Sanity, "Inicio").
-// Ninguna foto se repite en el Inicio: la obra 10 queda para la serie destacada.
+// La 2 y la 3 quedan inactivas: no hay foto confirmada para una segunda diapositiva.
 export const diapositivasHero = [
 	{
 		_id: 'diapositiva-1',
@@ -270,12 +255,12 @@ export const diapositivasHero = [
 		_id: 'diapositiva-2',
 		_type: 'diapositivaHero',
 		etiqueta: 'Serie destacada',
-		titulo: 'Serie de ejemplo',
+		titulo: 'Una vez vi blanco',
 		subtitulo: '',
 		textoBoton: 'Ver serie',
-		enlace: '/series/serie-de-ejemplo',
+		enlace: '/series/una-vez-vi-blanco',
 		orden: 20,
-		activa: true,
+		activa: false,
 		imagen: imagenDe('obra-06'),
 	},
 	{
@@ -287,9 +272,9 @@ export const diapositivasHero = [
 		textoBoton: 'Ver audiovisual',
 		enlace: '/audiovisual',
 		orden: 30,
-		activa: true,
+		activa: false,
 		imagen: foto(
-			'celia-proceso-cine.webp',
+			'/demo/celia-bucear.PNG',
 			1600,
 			686,
 			'Registro de proceso: un hilo de pintura negra cae sobre el piso cubierto de trazos.',
@@ -297,12 +282,21 @@ export const diapositivasHero = [
 	},
 ]
 
-// Proyectos confirmados en publicaciones de la artista. BUCEAR no se asigna a ninguna obra de demo
-// porque no está confirmado qué piezas lo integran; se muestra con la foto de la instalación.
+// Instalación confirmada. No se le asignan cuadros: no está confirmado cuáles la integran.
 export const proyectosArtisticos = [
 	{
+		_id: 'instalacion-bucear',
+		_type: 'instalacion',
+		tipo: 'instalacion',
 		nombre: 'BUCEAR: Del punto… a la línea',
-		imagen: {
+		slug: 'bucear-del-punto-a-la-linea',
+		anio: '',
+		lugar: '',
+		descripcion: [],
+		obras: [],
+		publicada: true,
+		orden: 10,
+		portada: {
 			...foto(
 				'celia-bucear.PNG',
 				608,
@@ -325,6 +319,9 @@ export const artista = {
 	subtitulo: 'Artista visual',
 	// Frase propia de la artista: se usa tal cual.
 	frase: 'Territorio arte',
+	// Confirmados en la bio: Chubut, 1977. El sitio todavía no los muestra.
+	lugarNacimiento: 'Chubut',
+	anioNacimiento: 1977,
 	// Frase introductoria del Inicio: texto de demostración de diseño, editable.
 	fraseInicio: 'Obra contemporánea que dialoga con el espacio, el cuerpo y sus huellas.',
 	bajadaGaleria: 'Dibujo, obra bidimensional y experimentación gráfica.',
@@ -384,6 +381,11 @@ export const artista = {
 		]),
 	],
 	trayectoria: [],
+	obrasExposiciones: [],
+	premiosBecasResidencias: [],
+	formacionAcademica: [],
+	formacionMovimiento: [],
+	charlasDocencia: [],
 	exposiciones: [],
 	residencias: [],
 	publicaciones: [],

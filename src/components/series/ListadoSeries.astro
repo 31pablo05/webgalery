@@ -1,0 +1,134 @@
+---
+import Imagen from '../home/Imagen.astro'
+
+// series: salida de fetchSeries() o fetchSeriesDestacadas().
+const { series = [] } = Astro.props
+const modo = series.length <= 1 ? 'una' : series.length === 2 ? 'dos' : 'varias'
+---
+
+{
+	series.length > 0 && (
+		<ul class:list={['catalogo', `catalogo--${modo}`]}>
+			{series.map((serie, indice) => (
+				<li class="catalogo__item">
+					<a class="pieza" href={serie.href}>
+						<div class="pieza__portada">
+							<Imagen
+								source={serie.portada}
+								alt={serie.portada?.alt || serie.nombre}
+								width={900}
+								height={1120}
+								marco="portada"
+								proporcion="vertical"
+								priority={indice === 0}
+								sizes="(min-width: 64rem) 36vw, (min-width: 48rem) 46vw, 100vw"
+							/>
+						</div>
+						<div class="pieza__texto">
+							<h2 class="pieza__nombre">{serie.nombre}</h2>
+							{serie.anio && <p class="pieza__meta">{serie.anio}</p>}
+							{serie.descripcion && <p class="t-texto pieza__descripcion">{serie.descripcion}</p>}
+							{serie.cantidadObras > 0 && (
+								<p class="pieza__meta">
+									{serie.cantidadObras} {serie.cantidadObras === 1 ? 'obra' : 'obras'}
+								</p>
+							)}
+						</div>
+					</a>
+				</li>
+			))}
+		</ul>
+	)
+}
+
+<style>
+	.catalogo {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 3rem 2rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.pieza {
+		display: grid;
+		gap: 1.1rem;
+		color: var(--tinta);
+		text-decoration: none;
+	}
+
+	.pieza__portada {
+		width: min(100%, 18rem);
+	}
+
+	.pieza__portada :global(.marco) {
+		width: 100%;
+	}
+
+	.pieza__nombre {
+		font-family: var(--font-display);
+		font-size: clamp(1.85rem, 2vw + 1rem, 2.75rem);
+		font-weight: 500;
+		line-height: 1.05;
+		text-wrap: balance;
+	}
+
+	.pieza__meta {
+		margin-top: 0.45rem;
+		color: var(--gris);
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+	}
+
+	.pieza__descripcion {
+		max-width: 34rem;
+		margin-top: 0.75rem;
+		color: var(--tinta);
+	}
+
+	.pieza:focus-visible {
+		outline: 1px solid var(--azul-medio);
+		outline-offset: 6px;
+	}
+
+	@media (min-width: 48rem) {
+		.catalogo--dos,
+		.catalogo--varias {
+			grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+			align-items: start;
+		}
+
+		.catalogo--una {
+			grid-template-columns: minmax(0, 26rem);
+		}
+
+		.pieza__portada {
+			width: min(100%, 22rem);
+		}
+
+		.catalogo--dos .catalogo__item:first-child .pieza__portada,
+		.catalogo--varias .catalogo__item:first-child .pieza__portada {
+			width: min(100%, 32rem);
+		}
+	}
+
+	@media (min-width: 64rem) {
+		.catalogo--varias {
+			grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.75fr) minmax(0, 0.75fr);
+		}
+
+		.catalogo--varias .catalogo__item:first-child {
+			grid-row: span 2;
+		}
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.pieza:hover .pieza__nombre {
+			color: var(--azul-medio);
+		}
+	}
+</style>

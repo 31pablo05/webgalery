@@ -1,0 +1,31 @@
+---
+import { relacionDe } from '../../lib/proporcion.js'
+
+// Marco editorial cuando la obra todavía no tiene fotografía.
+// llenar: ocupa el marco padre (que ya reserva la proporción). pie: el texto baja, para no tapar un botón de reproducir.
+const {
+	proporcion = 'vertical',
+	ancho,
+	alto,
+	titulo = '',
+	llenar = false,
+	pie = false,
+	class: clase = '',
+} = Astro.props
+
+const relacion = relacionDe({ ancho, alto, proporcion })
+const nombre = String(titulo || '').trim()
+const etiqueta = nombre ? `Imagen pendiente. ${nombre}` : 'Imagen pendiente'
+---
+
+<div
+	class:list={['obra-pendiente', llenar && 'obra-pendiente--llena', pie && 'obra-pendiente--pie', clase]}
+	style={llenar ? undefined : `aspect-ratio: ${relacion.ancho} / ${relacion.alto}`}
+	role="img"
+	aria-label={etiqueta}
+>
+	<div class="obra-pendiente__marco">
+		<p class="obra-pendiente__estado">Imagen pendiente</p>
+		{nombre && <p class="obra-pendiente__titulo">{nombre}</p>}
+	</div>
+</div>

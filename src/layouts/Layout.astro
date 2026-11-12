@@ -69,11 +69,24 @@ const indexar = ['true', '1', 'si', 'sí'].includes(
       // Fundido de la vista borrosa (LQIP) a la imagen nítida cuando termina de cargar.
       document.querySelectorAll('img[data-nitida]').forEach((img) => {
         const marcar = () => img.classList.add('is-nitida');
-        if (img.complete) marcar();
-        else {
+        const caer = () => img.closest('[data-marco-caja]')?.classList.add('is-rota');
+        if (img.complete) {
+          marcar();
+          if (img.naturalWidth === 0) caer();
+        } else {
           img.addEventListener('load', marcar, { once: true });
-          img.addEventListener('error', marcar, { once: true });
+          img.addEventListener('error', () => {
+            marcar();
+            caer();
+          }, { once: true });
         }
+      });
+
+      // Fotogramas y portadas que no pasan por el fundido: si la URL falla, aparece el placeholder.
+      document.querySelectorAll('img[data-marco]:not([data-nitida])').forEach((img) => {
+        const caer = () => img.closest('[data-marco-caja]')?.classList.add('is-rota');
+        if (img.complete && img.naturalWidth === 0) caer();
+        else img.addEventListener('error', caer, { once: true });
       });
 
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

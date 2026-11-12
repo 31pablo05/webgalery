@@ -69,7 +69,8 @@ export const configuracion = defineType({
       type: 'reference',
       group: 'inicio',
       to: [{type: 'obra'}],
-      description: 'La obra que querés mostrar grande en la página de inicio.',
+      description:
+        'Campo anterior. El inicio ahora elige la serie principal y las diapositivas. Si ya había una obra elegida, se conserva.',
     }),
   ],
   preview: {

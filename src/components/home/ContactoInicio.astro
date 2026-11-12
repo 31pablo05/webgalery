@@ -24,12 +24,12 @@ const { clave = '', whatsapp = '' } = Astro.props
 
 <style>
 	.contacto-inicio {
-		margin-top: 0;
-		padding-block: 0 2.5rem;
+		margin-top: var(--bloque);
+		padding-block: 0 3.5rem;
 	}
 
 	.contacto-inicio :global(.contacto-inicio__linea) {
-		margin-bottom: 2.5rem;
+		margin-bottom: 3rem;
 	}
 
 	.contacto-inicio__fila {
@@ -44,7 +44,7 @@ const { clave = '', whatsapp = '' } = Astro.props
 
 	@media (min-width: 64rem) {
 		.contacto-inicio {
-			padding-block: 0 2.75rem;
+			padding-block: 0 4rem;
 		}
 
 		.contacto-inicio__fila {

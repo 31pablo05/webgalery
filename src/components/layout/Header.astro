@@ -264,8 +264,8 @@ const redes = [
 
 <style>
 	.site-header {
-		--alto-barra: 5.25rem;
-		--ancho-firma: 6rem;
+		--alto-barra: 5.5rem;
+		--ancho-firma: 6.25rem;
 		position: sticky;
 		top: 0;
 		z-index: 40;
@@ -327,8 +327,8 @@ const redes = [
 	}
 
 	.site-header.is-scrolled {
-		--alto-barra: 4.25rem;
-		--ancho-firma: 4.5rem;
+		--alto-barra: 4.5rem;
+		--ancho-firma: 5rem;
 	}
 
 	/* Con el panel abierto, la barra queda sobre el azul del menú. */
@@ -377,7 +377,7 @@ const redes = [
 	.site-nav__lista {
 		display: flex;
 		align-items: center;
-		gap: clamp(1.5rem, 2.6vw, 2.75rem);
+		gap: clamp(0.9rem, 1.5vw, 2.15rem);
 	}
 
 	.site-nav__link {
@@ -395,7 +395,7 @@ const redes = [
 		font-size: 0.75rem;
 		font-weight: 500;
 		line-height: 1;
-		letter-spacing: 0.2em;
+		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		text-decoration: none;
 		white-space: nowrap;
@@ -448,7 +448,7 @@ const redes = [
 		border: 1px solid var(--color-line);
 		border-top: 1px solid var(--dorado);
 		background-color: var(--fondo-menu);
-		box-shadow: 0 18px 40px rgb(18 57 79 / 0.18);
+		box-shadow: 0 10px 28px rgb(18 57 79 / 0.1);
 	}
 
 	.desplegable__menu[hidden] {
@@ -539,7 +539,7 @@ const redes = [
 		gap: 0.75rem;
 		width: 100%;
 		margin: 0;
-		padding: 0.55rem 0;
+		padding: 0.7rem 0;
 		border: 0;
 		background: none;
 		color: var(--blanco-calido);
@@ -605,13 +605,13 @@ const redes = [
 
 	@media (min-width: 64rem) {
 		.site-header {
-			--alto-barra: 7rem;
-			--ancho-firma: 7.5rem;
+			--alto-barra: 6.5rem;
+			--ancho-firma: 7.25rem;
 		}
 
 		.site-header.is-scrolled {
 			--alto-barra: 4.75rem;
-			--ancho-firma: 4.75rem;
+			--ancho-firma: 5.25rem;
 		}
 
 		.site-header__bar {
@@ -627,10 +627,24 @@ const redes = [
 			margin-left: auto;
 		}
 
+		.site-nav__link {
+			letter-spacing: 0.12em;
+		}
+
 		.menu-toggle,
 		.menu-panel,
 		.menu-panel:not([hidden]) {
 			display: none;
+		}
+	}
+
+	@media (min-width: 90rem) {
+		.site-nav__link {
+			letter-spacing: 0.16em;
+		}
+
+		.site-nav__lista {
+			gap: 2rem;
 		}
 	}
 

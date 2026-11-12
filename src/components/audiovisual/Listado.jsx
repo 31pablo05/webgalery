@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import ModalVimeo from './ModalVimeo.jsx'
+import ObraPlaceholder from '../obras/ObraPlaceholder.jsx'
 
 const TABS = [
 	{ id: 'todos', label: 'Todos' },
@@ -42,7 +43,9 @@ function IconoPlay() {
 
 function Miniatura({ proyecto, onAbrir, sizes, prioridad = false }) {
 	const foto = fuente(proyecto)
+	const [rota, setRota] = useState(false)
 	const alt = foto?.alt || proyecto.titulo || 'Video'
+	const conFoto = Boolean(foto?.src) && !rota
 	return (
 		<button
 			type="button"
@@ -50,7 +53,7 @@ function Miniatura({ proyecto, onAbrir, sizes, prioridad = false }) {
 			aria-label={`Reproducir ${proyecto.titulo || 'video'}`}
 			onClick={(event) => onAbrir(proyecto, event)}
 		>
-			{foto && (
+			{conFoto ? (
 				<img
 					src={foto.src}
 					srcSet={foto.srcset || undefined}
@@ -61,7 +64,10 @@ function Miniatura({ proyecto, onAbrir, sizes, prioridad = false }) {
 					loading={prioridad ? 'eager' : 'lazy'}
 					fetchPriority={prioridad ? 'high' : 'auto'}
 					decoding="async"
+					onError={() => setRota(true)}
 				/>
+			) : (
+				<ObraPlaceholder llenar pie proporcion="horizontal" titulo={proyecto.titulo} />
 			)}
 			<span className="av-mini__velo" />
 			<span className="av-mini__play">

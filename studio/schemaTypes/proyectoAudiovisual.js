@@ -1,6 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {campoImagen} from './imagen.js'
-import {esLinkVimeo, maximoMarcados} from './validaciones.js'
+import {esLinkVimeo, maximoMarcados, slugUnico} from './validaciones.js'
 
 const categorias = {
   videoensayo: 'Videoensayo',
@@ -20,6 +20,15 @@ export const proyectoAudiovisual = defineType({
       type: 'string',
       description: 'El nombre del proyecto, tal como querés que se vea en el sitio.',
       validation: (rule) => rule.required().error('Escribí el título del proyecto.'),
+    }),
+    defineField({
+      name: 'slug',
+      title: 'Dirección',
+      type: 'slug',
+      description: 'Opcional por ahora. Se arma a partir del título. Tocá “Generar” cuando la página del video vaya a tener su propia dirección.',
+      options: {source: 'titulo', maxLength: 96},
+      validation: (rule) =>
+        slugUnico(rule, ['proyectoAudiovisual'], 'Ya hay otro video con esa dirección. Elegí otra.'),
     }),
     defineField({
       name: 'anio',

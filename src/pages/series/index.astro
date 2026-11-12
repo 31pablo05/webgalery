@@ -1,0 +1,44 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import ListadoSeries from '../../components/series/ListadoSeries.astro'
+import { fetchInicio, fetchSeries } from '../../lib/sanity.js'
+
+const series = await fetchSeries()
+const { artista, configuracion } = await fetchInicio()
+const nombre = artista?.nombre || ''
+const titulo = nombre ? `Series — ${nombre}` : 'Series'
+---
+
+<Layout
+	title={titulo}
+	description="Series de Celia Gómez Perea."
+	nombre={artista?.nombre}
+	subtitulo={artista?.subtitulo}
+	email={configuracion?.email}
+	ciudad={configuracion?.ciudad}
+	instagram={configuracion?.instagram}
+	vimeo={configuracion?.vimeo}
+	youtube={configuracion?.youtube}
+>
+	<header class="series-pagina__encabezado contenedor">
+		<h1 class="page-title">Series</h1>
+		<span class="filete filete--largo" aria-hidden="true" />
+	</header>
+	<section class="series-pagina__lista contenedor">
+		<ListadoSeries series={series} />
+	</section>
+</Layout>
+
+<style>
+	.series-pagina__encabezado {
+		display: grid;
+		justify-items: start;
+		gap: 1rem;
+		padding-top: clamp(2.5rem, 6vw, 4.5rem);
+	}
+
+	.series-pagina__lista {
+		padding-top: clamp(2rem, 4vw, 3.5rem);
+		padding-bottom: clamp(3.5rem, 7vw, 6rem);
+	}
+</style>

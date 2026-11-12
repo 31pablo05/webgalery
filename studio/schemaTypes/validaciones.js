@@ -1,6 +1,12 @@
 const API_VERSION = '2026-11-05'
 
-const CAMPOS_MARCADOS = new Set(['destacadaEnInicio', 'destacado', 'mostrarEnInicio'])
+const CAMPOS_MARCADOS = new Set([
+  'destacadaEnInicio',
+  'destacado',
+  'mostrarEnInicio',
+  'destacada',
+  'principalInicio',
+])
 
 function idPublicado(context) {
   return (context.document?._id || '').replace(/^drafts\./, '')
@@ -65,6 +71,24 @@ export function esUrlOpcional(value) {
   }
 
   return 'Pegá el link completo, empezando con https://.'
+}
+
+// El slug de una obra y el de una disciplina no pueden repetirse: los dos usan /obras/[slug].
+export function slugUnico(rule, tipos, mensaje) {
+  return rule.custom(async (slug, context) => {
+    const actual = typeof slug === 'string' ? slug.trim() : slug?.current?.trim()
+    if (!actual) return true
+
+    const id = idPublicado(context)
+    const client = context.getClient({apiVersion: API_VERSION})
+    const choque = await client.fetch(
+      `*[_type in $tipos && slug.current == $actual && !(_id in [$id, $draftId])][0]._id`,
+      {tipos, actual, id, draftId: `drafts.${id}`},
+      {perspective: 'raw', signal: context.signal},
+    )
+
+    return choque ? mensaje : true
+  })
 }
 
 export function esWhatsapp(value) {

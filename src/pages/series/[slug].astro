@@ -1,0 +1,240 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import Imagen from '../../components/home/Imagen.astro'
+import ColeccionObras from '../../components/series/ColeccionObras.astro'
+import { fetchInicio, fetchSerie, fetchSeries } from '../../lib/sanity.js'
+import { rutas } from '../../lib/rutas.js'
+
+export async function getStaticPaths() {
+	const series = await fetchSeries()
+	return series.filter((serie) => serie.slug).map((serie) => ({ params: { slug: serie.slug } }))
+}
+
+const serie = await fetchSerie(Astro.params.slug)
+const { artista, configuracion } = await fetchInicio()
+const nombre = artista?.nombre || ''
+const titulo = serie ? (nombre ? `${serie.nombre} — ${nombre}` : serie.nombre) : 'Serie'
+const descripcion = serie?.descripcion || (serie ? `Serie ${serie.nombre}.` : 'Serie')
+---
+
+{
+	serie && (
+		<Layout
+			title={titulo}
+			description={descripcion}
+			nombre={artista?.nombre}
+			subtitulo={artista?.subtitulo}
+			email={configuracion?.email}
+			ciudad={configuracion?.ciudad}
+			instagram={configuracion?.instagram}
+			vimeo={configuracion?.vimeo}
+			youtube={configuracion?.youtube}
+			heroAzul
+		>
+			<header class="presentacion ctx-azul textura textura--sutil">
+				<div class="presentacion__inner contenedor">
+					<div class="presentacion__texto">
+						<p class="label label--acento">Serie</p>
+						<h1 class="presentacion__titulo">{serie.nombre}</h1>
+						{serie.anio && <p class="presentacion__anio">{serie.anio}</p>}
+						{serie.tecnicaGeneral && <p class="presentacion__tecnica">{serie.tecnicaGeneral}</p>}
+						{serie.descripcion && <p class="t-texto presentacion__descripcion">{serie.descripcion}</p>}
+					</div>
+					<div class="presentacion__portada">
+						<Imagen
+							source={serie.portada}
+							alt={serie.portada?.alt || serie.nombre}
+							width={1000}
+							marco="portada"
+							proporcion="vertical"
+							priority
+							sizes="(min-width: 64rem) 28rem, 70vw"
+						/>
+					</div>
+				</div>
+			</header>
+
+			<section class="coleccion-serie ctx-claro" aria-labelledby="serie-obras">
+				<div class="contenedor">
+					<h2 id="serie-obras" class="titulo-seccion">Obras</h2>
+					{serie.obras.length > 0 ? (
+						<ColeccionObras obras={serie.obras} />
+					) : (
+						<p class="t-texto coleccion-serie__vacio">Todavía no hay obras publicadas en esta serie.</p>
+					)}
+				</div>
+			</section>
+
+			<nav class="recorrido contenedor" aria-label="Otras series">
+				<a class="detalle-volver__link" href={rutas.series}>
+					<span class="detalle-volver__flecha" aria-hidden="true">←</span>
+					Todas las series
+				</a>
+				<div class="recorrido__vecinas">
+					{serie.anterior && (
+						<a class="recorrido__vecina" href={serie.anterior.href}>
+							<span>Serie anterior</span>
+							{serie.anterior.nombre}
+						</a>
+					)}
+					{serie.siguiente && (
+						<a class="recorrido__vecina recorrido__vecina--siguiente" href={serie.siguiente.href}>
+							<span>Serie siguiente</span>
+							{serie.siguiente.nombre}
+						</a>
+					)}
+				</div>
+				<a class="recorrido__resto" href={rutas.obras}>
+					Toda la obra
+				</a>
+			</nav>
+		</Layout>
+	)
+}
+
+<style>
+	.presentacion {
+		padding-top: 6.5rem;
+		padding-bottom: clamp(2.5rem, 5vw, 4rem);
+	}
+
+	.presentacion__inner {
+		display: grid;
+		gap: 2rem;
+		align-items: end;
+	}
+
+	.presentacion__texto {
+		display: grid;
+		justify-items: start;
+		gap: 0.75rem;
+	}
+
+	.presentacion__titulo {
+		font-family: var(--font-display);
+		font-weight: 500;
+		font-size: clamp(2.75rem, 6vw, 5.5rem);
+		line-height: 0.98;
+		color: var(--blanco-calido);
+		text-wrap: balance;
+	}
+
+	.presentacion__anio,
+	.presentacion__tecnica {
+		color: var(--azul-bruma);
+		font-family: var(--font-ui);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+	}
+
+	.presentacion__descripcion {
+		max-width: 36rem;
+		margin-top: 0.5rem;
+		color: var(--blanco-calido);
+	}
+
+	.presentacion__portada {
+		width: min(16rem, 70%);
+	}
+
+	.presentacion__portada :global(.marco) {
+		width: 100%;
+	}
+
+	.coleccion-serie {
+		padding-top: clamp(2.5rem, 5vw, 4rem);
+	}
+
+	.coleccion-serie .titulo-seccion {
+		margin-bottom: 1.75rem;
+	}
+
+	.coleccion-serie__vacio {
+		max-width: 34rem;
+		color: var(--gris);
+	}
+
+	.recorrido {
+		display: grid;
+		gap: 1.75rem;
+		padding-top: clamp(2.5rem, 5vw, 4rem);
+		padding-bottom: clamp(3rem, 6vw, 5rem);
+	}
+
+	.recorrido__vecinas {
+		display: grid;
+		gap: 1.25rem;
+	}
+
+	.recorrido__vecina {
+		display: grid;
+		gap: 0.3rem;
+		color: var(--tinta);
+		font-family: var(--font-display);
+		font-size: clamp(1.35rem, 2vw, 1.85rem);
+		line-height: 1.15;
+		text-decoration: none;
+	}
+
+	.recorrido__vecina span {
+		color: var(--gris);
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+	}
+
+	.recorrido__resto {
+		color: var(--azul-medio);
+		font-family: var(--font-ui);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		text-decoration: none;
+	}
+
+	.recorrido a:focus-visible {
+		outline: 1px solid var(--azul-medio);
+		outline-offset: 4px;
+	}
+
+	@media (min-width: 48rem) {
+		.recorrido__vecinas {
+			grid-template-columns: 1fr 1fr;
+			align-items: start;
+		}
+
+		.recorrido__vecina--siguiente {
+			justify-items: end;
+			text-align: right;
+		}
+	}
+
+	@media (min-width: 64rem) {
+		.presentacion {
+			padding-top: 8rem;
+		}
+
+		.presentacion__inner {
+			grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.7fr);
+			align-items: center;
+			gap: 4rem;
+		}
+
+		.presentacion__portada {
+			width: min(22rem, 100%);
+			justify-self: end;
+		}
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.recorrido__vecina:hover,
+		.recorrido__resto:hover {
+			color: var(--azul-medio);
+		}
+	}
+</style>

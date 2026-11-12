@@ -1,9 +1,11 @@
 ---
-import {medidasImagen, urlFor} from '../../lib/sanity.js'
+import ObraPlaceholder from '../obras/ObraPlaceholder.astro'
+import { imagenDisponible, medidasImagen, relacionConfiable, urlFor } from '../../lib/sanity.js'
+import { relacionDe } from '../../lib/proporcion.js'
 
 // Con width y height, la imagen se recorta a ese formato (respetando el hotspot de Sanity).
 // Solo con width, se muestra entera con su proporción original: es lo que usan las obras.
-// Mientras carga, se ve la versión borrosa (LQIP) sobre el color dominante de la imagen.
+// Si no hay archivo, o la URL falla, queda el placeholder en el mismo marco.
 const {
 	source,
 	width: anchoPedido,
@@ -11,60 +13,86 @@ const {
 	sizes,
 	priority = false,
 	class: clase = '',
-	// Nombre de View Transition: la misma obra se transforma con continuidad entre páginas.
 	transicion = '',
+	titulo = '',
+	proporcion = 'vertical',
+	marco = 'obra',
 } = Astro.props
 
-const alt = Astro.props.alt || source?.alt || ''
-const tieneArchivo = Boolean(source?.asset)
+const alt = Astro.props.alt || source?.alt || titulo || ''
+const disponible = imagenDisponible(source)
 const natural = !height
-const medidas = natural && tieneArchivo ? medidasImagen(source) : null
-// Nunca se pide ni se declara una versión más ancha que la imagen real.
-const width = medidas ? Math.min(anchoPedido, medidas.ancho) : anchoPedido
-const alto = natural ? (medidas ? Math.round((width * medidas.alto) / medidas.ancho) : width) : height
+const recorte = Number(height) > 0 && Number(anchoPedido) > 0
+const confiable = relacionConfiable(source)
+const relacion = relacionDe({
+	ancho: recorte ? anchoPedido : confiable?.ancho,
+	alto: recorte ? height : confiable?.alto,
+	proporcion,
+})
+const medidas = natural && disponible ? medidasImagen(source) : null
+const width = medidas ? Math.min(anchoPedido || medidas.ancho, medidas.ancho) : anchoPedido || relacion.ancho
+const alto = natural ? (medidas ? Math.round((width * medidas.alto) / medidas.ancho) : relacion.alto) : height
 
 function url(ancho, altoPedido) {
 	const cadena = urlFor(source).width(ancho)
 	return (natural ? cadena : cadena.height(altoPedido)).url()
 }
 
-const src = tieneArchivo ? url(width, alto) : ''
+const src = disponible ? url(width, alto) : ''
 const chico = Math.round(width / 2)
-const altoChico = Math.round((alto * chico) / width)
-const srcChico = tieneArchivo ? url(chico, altoChico) : ''
+const altoChico = Math.round((alto * chico) / Math.max(width, 1))
+const srcChico = disponible ? url(chico, altoChico) : ''
 const srcset = srcChico && srcChico !== src ? `${srcChico} ${chico}w, ${src} ${width}w` : undefined
 
 const metadata = source?.asset?.metadata
 const lqip = metadata?.lqip || ''
 const dominante = metadata?.palette?.dominant?.background || ''
-// Al recortar, el encuadre se centra en el punto de interés (hotspot) que se marca en Sanity.
 const hotspot = source?.hotspot
 const posicion =
 	!natural && hotspot && Number.isFinite(hotspot.x) && Number.isFinite(hotspot.y)
 		? `object-position: ${(hotspot.x * 100).toFixed(1)}% ${(hotspot.y * 100).toFixed(1)}%`
 		: ''
 const estiloImagen = [posicion, transicion && `view-transition-name: ${transicion}`].filter(Boolean).join('; ') || undefined
-const estilo = [dominante && `--dominante: ${dominante}`, lqip && `--lqip: url("${lqip}")`]
+const estiloLqip = [dominante && `--dominante: ${dominante}`, lqip && `--lqip: url("${lqip}")`].filter(Boolean).join('; ')
+const estiloMarco = [
+	`aspect-ratio: ${relacion.ancho} / ${relacion.alto}`,
+	medidas?.ancho ? `max-width: ${medidas.ancho}px` : '',
+]
 	.filter(Boolean)
 	.join('; ')
 ---
 
-{
-	tieneArchivo && (
-		<span class:list={['lqip', natural ? 'lqip--natural' : 'lqip--cubre', clase]} style={estilo || undefined}>
-			<img
-				src={src}
-				srcset={srcset}
-				sizes={srcset ? sizes : undefined}
-				alt={alt}
-				width={width}
-				height={alto}
-				loading={priority ? 'eager' : 'lazy'}
-				fetchpriority={priority ? 'high' : 'auto'}
-				decoding={priority ? 'sync' : 'async'}
-				data-nitida={priority ? undefined : ''}
-				style={estiloImagen}
-			/>
-		</span>
-	)
-}
+<span
+	class:list={['marco', `marco--${marco}`, !disponible && 'is-vacia', clase]}
+	data-marco-caja
+	style={estiloMarco}
+>
+	{
+		disponible && (
+			<span class:list={['lqip', natural ? 'lqip--natural' : 'lqip--cubre']} style={estiloLqip || undefined}>
+				<img
+					src={src}
+					srcset={srcset}
+					sizes={srcset ? sizes : undefined}
+					alt={alt}
+					width={width}
+					height={alto}
+					loading={priority ? 'eager' : 'lazy'}
+					fetchpriority={priority ? 'high' : 'auto'}
+					decoding={priority ? 'sync' : 'async'}
+					data-nitida={priority ? undefined : ''}
+					data-marco
+					style={estiloImagen}
+				/>
+			</span>
+		)
+	}
+	<ObraPlaceholder
+		class:list={['marco__pendiente', disponible && 'marco__pendiente--espera']}
+		llenar
+		ancho={relacion.ancho}
+		alto={relacion.alto}
+		titulo={titulo}
+		proporcion={proporcion}
+	/>
+</span>

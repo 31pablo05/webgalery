@@ -1,4 +1,5 @@
-import {defineArrayMember, defineField, defineType} from 'sanity'
+import {defineField, defineType} from 'sanity'
+import {textoEnriquecido} from './bloques.js'
 import {campoImagen} from './imagen.js'
 
 function listaDeItems(name, title, description) {
@@ -6,21 +7,22 @@ function listaDeItems(name, title, description) {
     name,
     title,
     type: 'array',
-    group: 'recorrido',
+    group: 'recorridoAnterior',
     description,
     of: [{type: 'string'}],
   })
 }
 
-const textoEnriquecido = defineArrayMember({
-  type: 'block',
-  styles: [{title: 'Párrafo', value: 'normal'}],
-  lists: [],
-  marks: {
-    decorators: [{title: 'Negrita', value: 'strong'}],
-    annotations: [],
-  },
-})
+function listaDeHitos(name, title, description) {
+  return defineField({
+    name,
+    title,
+    type: 'array',
+    group: 'recorrido',
+    description,
+    of: [{type: 'hito'}],
+  })
+}
 
 export const artista = defineType({
   name: 'artista',
@@ -35,6 +37,7 @@ export const artista = defineType({
     {name: 'audiovisual', title: 'Audiovisual'},
     {name: 'bio', title: 'Biografía'},
     {name: 'recorrido', title: 'Recorrido'},
+    {name: 'recorridoAnterior', title: 'Recorrido anterior'},
     {name: 'contacto', title: 'Contacto'},
   ],
   fields: [
@@ -53,6 +56,21 @@ export const artista = defineType({
       group: 'datos',
       description: 'La línea chica debajo del nombre. Por defecto: Artista visual.',
       initialValue: 'Artista visual',
+    }),
+    defineField({
+      name: 'lugarNacimiento',
+      title: 'Lugar de nacimiento',
+      type: 'string',
+      group: 'datos',
+      description: 'Solo si está confirmado. Ejemplo: Chubut.',
+    }),
+    defineField({
+      name: 'anioNacimiento',
+      title: 'Año de nacimiento',
+      type: 'number',
+      group: 'datos',
+      description: 'Solo el año, si está confirmado.',
+      validation: (rule) => rule.integer().min(1900).max(2100).error('Ingresá un año válido.'),
     }),
     defineField({
       name: 'frase',
@@ -97,9 +115,16 @@ export const artista = defineType({
         campoImagen({
           name: 'imagen',
           title: 'Imagen',
-          description: 'La foto de fondo o principal de la primera pantalla.',
+          description: 'La foto de fondo o principal de la primera pantalla. Campo anterior: el inicio ahora usa las diapositivas.',
         }),
       ],
+    }),
+    defineField({
+      name: 'fraseInicio',
+      title: 'Frase del inicio',
+      type: 'string',
+      group: 'inicio',
+      description: 'La frase breve entre el hero y la serie destacada. Es un texto editable, corto.',
     }),
     defineField({
       name: 'heroAudiovisual',
@@ -137,6 +162,14 @@ export const artista = defineType({
       description: 'Se muestra en el inicio. Con dos o tres frases alcanza.',
     }),
     defineField({
+      name: 'statement',
+      title: 'Statement',
+      type: 'array',
+      group: 'bio',
+      of: [textoEnriquecido],
+      description: 'El texto en primera persona, si la artista lo aprueba. Si hay dudas de redacción, dejalo vacío.',
+    }),
+    defineField({
       name: 'bioCompleta',
       title: 'Bio completa',
       type: 'array',
@@ -144,10 +177,35 @@ export const artista = defineType({
       description: 'El texto largo de Sobre mí. Podés separar párrafos y marcar palabras en negrita.',
       of: [textoEnriquecido],
     }),
+    listaDeHitos(
+      'obrasExposiciones',
+      'Obras y exposiciones',
+      'Una muestra o una obra por ítem. Cargá solo lo que esté confirmado en el CV.',
+    ),
+    listaDeHitos(
+      'premiosBecasResidencias',
+      'Premios, becas y residencias',
+      'Un premio, beca o residencia por ítem.',
+    ),
+    listaDeHitos(
+      'formacionAcademica',
+      'Formación académica',
+      'Estudios formales. Un ítem por título o carrera.',
+    ),
+    listaDeHitos(
+      'formacionMovimiento',
+      'Formación en movimiento',
+      'Estudios de cuerpo o movimiento, si están confirmados.',
+    ),
+    listaDeHitos(
+      'charlasDocencia',
+      'Charlas y docencia',
+      'Una charla, taller o cargo docente por ítem.',
+    ),
     listaDeItems(
       'trayectoria',
-      'Trayectoria',
-      'Agregá un ítem por cada hito, en una frase corta. Si es un solo párrafo, alcanza con un ítem.',
+      'Trayectoria (campo anterior)',
+      'Campo anterior, en una sola frase por ítem. El texto cargado se conserva. Para datos nuevos usá el recorrido de arriba.',
     ),
     listaDeItems(
       'exposiciones',

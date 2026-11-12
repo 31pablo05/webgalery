@@ -1,0 +1,130 @@
+---
+import ObraPlaceholder from '../obras/ObraPlaceholder.astro'
+import { rutaObra } from '../../lib/rutas.js'
+
+// obras: salida de fetchObrasPorSerie() o las obras sueltas de una disciplina.
+// Cada ítem es un cuadro. Las fotos adicionales no llegan como obras aparte.
+const { obras = [], papel = false, prioridad = 0 } = Astro.props
+
+function proporcion(obra) {
+	if (obra.relacion?.ancho && obra.relacion?.alto) return null
+	return 'vertical'
+}
+---
+
+{
+	obras.length > 0 && (
+		<ul class:list={['coleccion', papel && 'coleccion--papel']}>
+			{obras.map((obra, indice) => (
+				<li>
+					<a class="cuadro" href={rutaObra(obra.slug)}>
+						<figure class="cuadro__figura">
+							{obra.imagen ? (
+								<img
+									src={obra.imagen.src}
+									srcset={obra.imagen.srcset || undefined}
+									sizes={papel ? '(min-width: 64rem) 22rem, 100vw' : '(min-width: 64rem) 30vw, (min-width: 40rem) 46vw, 100vw'}
+									alt={obra.imagen.alt || obra.titulo}
+									width={obra.imagen.ancho}
+									height={obra.imagen.alto}
+									loading={indice < prioridad ? 'eager' : 'lazy'}
+									decoding="async"
+									style={`width: min(100%, ${obra.imagen.ancho}px)`}
+								/>
+							) : (
+								<ObraPlaceholder
+									ancho={obra.relacion?.ancho}
+									alto={obra.relacion?.alto}
+									proporcion={proporcion(obra) || 'vertical'}
+								/>
+							)}
+						</figure>
+						<h3 class="cuadro__titulo">{obra.titulo}</h3>
+						{obra.anio && <p class="cuadro__anio">{obra.anio}</p>}
+					</a>
+				</li>
+			))}
+		</ul>
+	)
+}
+
+<style>
+	.coleccion {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 2.75rem 1.75rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		align-items: start;
+	}
+
+	.cuadro {
+		display: grid;
+		justify-items: start;
+		gap: 0.85rem;
+		max-width: 100%;
+		color: var(--tinta);
+		text-decoration: none;
+	}
+
+	.cuadro__figura {
+		margin: 0;
+		max-width: 100%;
+	}
+
+	.cuadro__figura img,
+	.cuadro__figura :global(.obra-pendiente) {
+		display: block;
+		max-width: 100%;
+		height: auto;
+	}
+
+	.cuadro__figura :global(.obra-pendiente) {
+		width: min(100%, 18rem);
+	}
+
+	.cuadro__titulo {
+		font-family: var(--font-display);
+		font-size: clamp(1.35rem, 1vw + 1rem, 1.75rem);
+		font-weight: 500;
+		line-height: 1.15;
+		text-wrap: balance;
+	}
+
+	.cuadro__anio {
+		margin-top: -0.35rem;
+		color: var(--gris);
+		font-family: var(--font-body);
+		font-size: 0.9375rem;
+	}
+
+	.cuadro:focus-visible {
+		outline: 1px solid var(--azul-medio);
+		outline-offset: 6px;
+	}
+
+	@media (min-width: 40rem) {
+		.coleccion {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (min-width: 64rem) {
+		.coleccion {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 3.5rem 2rem;
+		}
+
+		.coleccion--papel {
+			grid-template-columns: repeat(2, minmax(0, 22rem));
+			gap: 3.5rem 3rem;
+		}
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.cuadro:hover .cuadro__titulo {
+			color: var(--azul-medio);
+		}
+	}
+</style>

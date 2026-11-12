@@ -1,8 +1,12 @@
 ---
 import Imagen from '../home/Imagen.astro'
+import { rutas } from '../../lib/rutas.js'
 
-// Tres obras en su proporción original, alineadas abajo; primero las del mismo proyecto.
-const { obras = [] } = Astro.props
+// obras: hermanas de la misma serie, o hasta 3 obras de la misma disciplina si no hay serie.
+const { obras = [], serie = null } = Astro.props
+const titulo = serie?.nombre ? `Más obras de ${serie.nombre}` : 'Otras obras'
+const destino = serie?.href || rutas.obras
+const enlace = serie?.href ? 'Ver la serie' : 'Ver todas las obras'
 ---
 
 {
@@ -10,26 +14,28 @@ const { obras = [] } = Astro.props
 		<section class="mas-obras contenedor" aria-labelledby="mas-obras-titulo">
 			<div class="mas-obras__cabecera grilla">
 				<h2 id="mas-obras-titulo" class="titulo-seccion">
-					Más obras
+					{titulo}
 				</h2>
-				<a class="enlace" href="/obras">
-					Ver todas las obras <span class="arrow" aria-hidden="true">→</span>
+				<a class="enlace" href={destino}>
+					{enlace} <span class="arrow" aria-hidden="true">→</span>
 				</a>
 			</div>
 			<ul class="mas-obras__lista grilla">
 				{obras.map((obra, indice) => (
-					<li class="mas-obras__item fade-in" style={`--movil: ${indice === 1 ? '3 / 5' : '1 / 3'}`}>
+					<li class="mas-obras__item" style={`--movil: ${indice % 2 === 1 ? '3 / 5' : '1 / 3'}`}>
 						<a class="mas-obras__link" href={`/obras/${obra.slug}`}>
 							<Imagen
 								source={obra.imagen}
 								alt={obra.imagen?.alt || obra.titulo}
+								titulo={obra.titulo}
 								width={700}
-								sizes="(min-width: 64rem) min(31vw, 540px), 50vw"
+								marco="obra"
+								sizes="(min-width: 64rem) min(28vw, 420px), 46vw"
 								transicion={`obra-${obra.slug}`}
 							/>
 							<p class="mas-obras__titulo titulo-obra">{obra.titulo}</p>
-							{(obra.proyecto || obra.anio) && (
-								<p class="mas-obras__meta">{[obra.proyecto, obra.anio].filter(Boolean).join(' · ')}</p>
+							{(obra.anio || (!serie && obra.disciplina)) && (
+								<p class="mas-obras__meta">{[obra.anio, !serie ? obra.disciplina : ''].filter(Boolean).join(' · ')}</p>
 							)}
 						</a>
 					</li>

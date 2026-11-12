@@ -1,28 +1,43 @@
 ---
-const { obra, whatsapp = '', envio = '', anterior = null, siguiente = null } = Astro.props
+import { rutaSerie } from '../../lib/rutas.js'
+
+const { obra, whatsapp = '', envio = '', anterior = null, siguiente = null, enSerie = null } = Astro.props
 
 const ESTADOS = {
 	disponible: { marca: '●', texto: 'Disponible', tenue: false },
 	reservada: { marca: '○', texto: 'Reservada', tenue: false },
 	vendida: { marca: '', texto: 'Vendida', tenue: true },
-}
-
-const CATEGORIAS = {
-	dibujo: 'Dibujo',
-	instalacion: 'Instalación',
-	'experimentacion-grafica': 'Experimentación gráfica',
-	'obra-bidimensional': 'Obra bidimensional',
+	'no-disponible': { marca: '', texto: 'No disponible', tenue: true },
 }
 
 const estado = ESTADOS[obra?.estado] || null
 const vendida = obra?.estado === 'vendida'
-const categoria = CATEGORIAS[obra?.categoria] || ''
+const serie = obra?.serie?.slug ? obra.serie : enSerie?.serie || null
+const posicion = enSerie?.posicion?.total > 1 ? enSerie.posicion : null
 
-// La ficha técnica muestra solo los datos cargados; si no hay ninguno, una línea discreta.
+function medida(valor) {
+	const numero = Number(valor)
+	if (!(numero > 0)) return ''
+	const texto = Number.isInteger(numero) ? String(numero) : String(numero).replace('.', ',')
+	return `${texto} cm`
+}
+
+function precioVisible(obraActual) {
+	if (!obraActual?.mostrarPrecio || obraActual.precio == null || !(Number(obraActual.precio) >= 0)) return ''
+	return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 }).format(Number(obraActual.precio))
+}
+
+const alto = medida(obra?.altoCm)
+const ancho = medida(obra?.anchoCm)
+const precio = precioVisible(obra)
+
 const ficha = [
 	obra?.anio != null && obra.anio !== '' ? ['Año', String(obra.anio)] : null,
 	obra?.tecnica ? ['Técnica', obra.tecnica] : null,
-	obra?.dimensiones ? ['Dimensiones', obra.dimensiones] : null,
+	alto ? ['Alto', alto] : null,
+	ancho ? ['Ancho', ancho] : null,
+	!alto && !ancho && obra?.dimensiones ? ['Medidas', obra.dimensiones] : null,
+	precio ? ['Precio', precio] : null,
 ].filter(Boolean)
 
 function consultaWhatsapp(numero, titulo, anio) {
@@ -35,11 +50,18 @@ function consultaWhatsapp(numero, titulo, anio) {
 
 const linkConsulta = consultaWhatsapp(whatsapp, obra?.titulo, obra?.anio)
 const textoConsulta = vendida ? 'Consultar por obras similares' : estado ? 'Consultar por esta obra' : 'Consultar sobre esta obra'
+const hrefSerie = serie?.slug ? rutaSerie(serie.slug) : ''
 ---
 
 <div class="detalle__info">
 	<div class="detalle__cabeza">
-		<p class="label">{obra.proyecto || 'Obra'}</p>
+		{
+			serie?.nombre && hrefSerie ? (
+				<a class="detalle-serie" href={hrefSerie}>{serie.nombre}</a>
+			) : (
+				<p class="label">Obra</p>
+			)
+		}
 		<h1 class="detalle-titulo titulo-obra">{obra.titulo}</h1>
 
 		{
@@ -68,20 +90,11 @@ const textoConsulta = vendida ? 'Consultar por obras similares' : estado ? 'Cons
 
 		{obra.descripcionCorta && <p class="detalle-texto">{obra.descripcionCorta}</p>}
 
-		{
-			(categoria || envio) && (
-				<p class="detalle-extra">{[categoria, envio].filter(Boolean).join(' · ')}</p>
-			)
-		}
+		{envio && <p class="detalle-extra">{envio}</p>}
 
 		{
 			linkConsulta && (
-				<a
-					class:list={['btn', 'detalle-consulta', vendida ? 'btn-outline' : 'btn-solid']}
-					href={linkConsulta}
-					target="_blank"
-					rel="noopener noreferrer"
-				>
+				<a class="btn btn-outline detalle-consulta" href={linkConsulta} target="_blank" rel="noopener noreferrer">
 					{textoConsulta}
 					<span class="arrow" aria-hidden="true">→</span>
 				</a>
@@ -90,8 +103,13 @@ const textoConsulta = vendida ? 'Consultar por obras similares' : estado ? 'Cons
 	</div>
 
 	{
-		(anterior || siguiente) && (
-			<nav class="detalle-nav" aria-label="Recorrer las obras">
+		(anterior || siguiente || posicion) && (
+			<nav class="detalle-nav" aria-label={serie ? 'Recorrer la serie' : 'Recorrer las obras'}>
+				{posicion && (
+					<p class="detalle-nav__posicion">
+						{posicion.actual} de {posicion.total}
+					</p>
+				)}
 				{anterior ? (
 					<a class="detalle-nav__link" href={`/obras/${anterior.slug}`} rel="prev">
 						<span class="detalle-nav__sentido">
@@ -114,3 +132,25 @@ const textoConsulta = vendida ? 'Consultar por obras similares' : estado ? 'Cons
 		)
 	}
 </div>
+
+<style>
+	.detalle-serie {
+		color: var(--azul-medio);
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.16em;
+		line-height: 1.4;
+		text-transform: uppercase;
+		text-decoration: none;
+	}
+
+	.detalle-serie:hover {
+		color: var(--azul-profundo);
+	}
+
+	.detalle-serie:focus-visible {
+		outline: 1px solid var(--azul-medio);
+		outline-offset: 4px;
+	}
+</style>

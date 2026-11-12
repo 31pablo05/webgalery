@@ -16,6 +16,8 @@ function fuenteHero(imagen) {
 	const lista = anchos.map((valor) => ({ valor, url: urlFor(imagen).width(valor).url() }))
 	const { x = 0.5, y = 0.5 } = imagen.hotspot || {}
 	const posicion = `${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%`
+	// Por debajo de 1200 px de ancho, cubrir el hero la estira y la foto se ve blanda.
+	const contenida = ancho > 0 && ancho < 1200
 	return {
 		src: lista[lista.length - 1].url,
 		srcset: lista.map(({ valor, url }) => `${url} ${valor}w`).join(', '),
@@ -24,6 +26,7 @@ function fuenteHero(imagen) {
 		alto,
 		posicion,
 		posicionMovil: posicion,
+		contenida,
 	}
 }
 
@@ -53,8 +56,7 @@ const preparadas = diapositivas.map((diapositiva) => ({
 		bordes; el lado del texto es azul profundo (el dorado chico necesita ese fondo para el contraste).
 	*/
 	.hero {
-		--alto-hero: max(100svh, 40rem);
-		background-image: linear-gradient(180deg, var(--azul-profundo) 0%, var(--azul-oceano) 55%, var(--azul-profundo) 100%);
+		background-color: var(--azul-oceano);
 		overflow: hidden;
 	}
 
@@ -65,7 +67,7 @@ const preparadas = diapositivas.map((diapositiva) => ({
 
 	.hero__carrusel {
 		position: relative;
-		height: var(--alto-hero);
+		min-height: 100svh;
 	}
 
 	.hero__carrusel:focus-visible {
@@ -75,20 +77,25 @@ const preparadas = diapositivas.map((diapositiva) => ({
 
 	.hero__pista {
 		position: relative;
-		height: 100%;
+		min-height: 100svh;
 	}
 
 	.hero__diapositiva {
 		position: absolute;
 		inset: 0;
 		display: grid;
-		grid-template-rows: 57% 1fr;
+		grid-template-rows: minmax(12rem, 46%) auto;
+		align-content: start;
+		padding-top: 6rem;
 		opacity: 0;
 		transition: opacity 0.6s var(--ease);
 	}
 
 	.hero__diapositiva.is-activa {
+		position: relative;
+		inset: auto;
 		z-index: 1;
+		min-height: 100svh;
 		opacity: 1;
 	}
 
@@ -106,18 +113,50 @@ const preparadas = diapositivas.map((diapositiva) => ({
 		mask-composite: intersect;
 	}
 
-	.hero__figura img {
+	.hero__figura img,
+	.hero__pendiente {
+		position: absolute;
+		inset: 0;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 		object-position: var(--posicion-movil, 50% 50%);
 	}
 
+	.hero__diapositiva:has(.hero__figura--contenida) {
+		grid-template-rows: auto auto;
+		row-gap: 0.5rem;
+	}
+
+	/* Foto horizontal de poca resolución: se muestra entera, nunca más grande que su archivo. */
+	.hero__figura--contenida {
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		height: auto;
+		padding: 0 1.25rem;
+		-webkit-mask-image: none;
+		mask-image: none;
+	}
+
+	.hero__figura--contenida img,
+	.hero__figura--contenida .hero__pendiente {
+		position: relative;
+		inset: auto;
+		width: min(100%, var(--ancho-nativo, 100%));
+		height: auto;
+		min-width: 0;
+		min-height: 0;
+		max-height: min(38vh, 16rem);
+		object-fit: contain;
+	}
+
 	.hero__texto {
 		position: relative;
 		display: flex;
-		align-items: center;
-		padding-bottom: 3.5rem;
+		align-items: flex-start;
+		padding-top: 1.75rem;
+		padding-bottom: 2.5rem;
 	}
 
 	.hero__bloque {
@@ -142,15 +181,15 @@ const preparadas = diapositivas.map((diapositiva) => ({
 	}
 
 	.hero__subtitulo {
-		max-width: 22rem;
+		max-width: 28rem;
 		margin-top: 1.1rem;
 		color: var(--azul-bruma);
-		font-family: var(--font-ui);
-		font-size: 0.8125rem;
-		font-weight: 500;
-		line-height: 1.75;
-		letter-spacing: 0.2em;
-		text-transform: uppercase;
+		font-family: var(--font-body);
+		font-size: 1rem;
+		font-weight: 400;
+		line-height: 1.55;
+		letter-spacing: 0;
+		text-wrap: balance;
 	}
 
 	.hero__boton {
@@ -180,7 +219,7 @@ const preparadas = diapositivas.map((diapositiva) => ({
 	.hero__flecha svg {
 		width: 0.875rem;
 		height: 1.75rem;
-		filter: drop-shadow(0 0 3px rgb(18 57 79 / 0.9)) drop-shadow(0 0 10px rgb(18 57 79 / 0.6));
+		filter: drop-shadow(0 1px 1px rgb(18 57 79 / 0.45));
 	}
 
 	.hero__flecha:hover {
@@ -242,22 +281,31 @@ const preparadas = diapositivas.map((diapositiva) => ({
 
 	@media (min-width: 48rem) {
 		.hero__diapositiva {
-			grid-template-rows: 58% 1fr;
+			grid-template-rows: minmax(14rem, 42%) auto;
+		}
+
+		.hero__figura--contenida img,
+		.hero__figura--contenida .hero__pendiente {
+			max-height: min(40vh, 20rem);
 		}
 
 		.hero__titulo {
-			font-size: clamp(3rem, 6.5vw, 4rem);
+			font-size: clamp(3rem, 5.5vw, 4rem);
 		}
 	}
 
-	/* Escritorio: imagen en los 2/3 de la derecha, fundida hacia la izquierda, arriba y abajo. */
+	/* Escritorio: la imagen vive a la derecha. Si alcanza resolución, se funde con el azul. */
 	@media (min-width: 64rem) {
-		.hero {
-			--alto-hero: clamp(35rem, 100svh, 47.5rem);
+		.hero__carrusel,
+		.hero__pista,
+		.hero__diapositiva.is-activa {
+			height: 100svh;
+			min-height: 100svh;
 		}
 
 		.hero__diapositiva {
 			display: block;
+			padding-top: 0;
 		}
 
 		.hero__figura {
@@ -265,11 +313,30 @@ const preparadas = diapositivas.map((diapositiva) => ({
 			top: 0;
 			right: 0;
 			bottom: 0;
-			left: 30%;
+			left: 34%;
 			-webkit-mask-image: var(--mascara-hero);
 			mask-image: var(--mascara-hero);
 			-webkit-mask-composite: source-over;
 			mask-composite: add;
+		}
+
+		.hero__figura--contenida {
+			top: 14%;
+			right: max(var(--gutter), 3vw);
+			bottom: 14%;
+			left: auto;
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			width: min(46vw, var(--ancho-nativo, 46vw));
+			padding: 0;
+			-webkit-mask-image: none;
+			mask-image: none;
+		}
+
+		.hero__figura--contenida img,
+		.hero__figura--contenida .hero__pendiente {
+			max-height: 100%;
 		}
 
 		.hero__figura img {
@@ -279,20 +346,20 @@ const preparadas = diapositivas.map((diapositiva) => ({
 		.hero__texto {
 			height: 100%;
 			align-items: center;
-			padding-top: 5rem;
+			padding-top: 6.5rem;
 			padding-bottom: 3rem;
-			padding-inline: calc(var(--gutter) + 2.5rem);
+			padding-inline: calc(var(--gutter) + 1.5rem);
 			pointer-events: none;
 		}
 
 		.hero__bloque {
-			max-width: min(36%, 32rem);
+			max-width: min(28rem, 38vw);
 			margin-top: 0;
 			pointer-events: auto;
 		}
 
 		.hero__titulo {
-			font-size: clamp(3.5rem, 4.6vw, 5rem);
+			font-size: clamp(3.25rem, 4.2vw, 5.25rem);
 		}
 
 		.hero__filete {
@@ -300,7 +367,7 @@ const preparadas = diapositivas.map((diapositiva) => ({
 		}
 
 		.hero__subtitulo {
-			margin-top: 1.5rem;
+			margin-top: 1.35rem;
 		}
 
 		.hero__boton {
@@ -312,7 +379,7 @@ const preparadas = diapositivas.map((diapositiva) => ({
 		}
 
 		.hero__puntos {
-			bottom: 1rem;
+			bottom: 1.25rem;
 		}
 	}
 

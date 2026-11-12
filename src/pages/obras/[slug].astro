@@ -3,48 +3,124 @@ import Layout from '../../layouts/Layout.astro'
 import Visor from '../../components/obras/Visor.jsx'
 import FichaObra from '../../components/obras/FichaObra.astro'
 import MasObras from '../../components/obras/MasObras.astro'
-import { fetchPaginasObra } from '../../lib/sanity.js'
+import Disciplina from '../../components/obras/Disciplina.astro'
+import { fetchDisciplina, fetchDisciplinas, fetchPaginasObra } from '../../lib/sanity.js'
+import { rutas } from '../../lib/rutas.js'
 
 export async function getStaticPaths() {
-	return fetchPaginasObra()
+	const obras = await fetchPaginasObra()
+	const slugsObra = new Set(obras.map((pagina) => pagina.params.slug))
+	const disciplinas = await fetchDisciplinas()
+	for (const disciplina of disciplinas) {
+		if (disciplina.slug && slugsObra.has(disciplina.slug)) {
+			console.warn(
+				`[rutas] El slug "${disciplina.slug}" ya pertenece a una obra. Se publica la ficha y no la página de la disciplina.`,
+			)
+		}
+	}
+	const paginasDisciplina = disciplinas
+		.filter((disciplina) => disciplina.slug && !slugsObra.has(disciplina.slug))
+		.map((disciplina) => ({
+			params: { slug: disciplina.slug },
+			props: { tipo: 'disciplina', slug: disciplina.slug },
+		}))
+	return [
+		...obras.map((pagina) => ({
+			...pagina,
+			props: { ...pagina.props, tipo: 'obra' },
+		})),
+		...paginasDisciplina,
+	]
 }
 
-const { obra, artista, configuracion, relacionadas, anterior, siguiente } = Astro.props
-const envio = configuracion?.envioColeccion || ''
-const titulo = artista?.nombre ? `${obra.titulo} — ${artista.nombre}` : obra.titulo
-const descripcion = obra.descripcionCorta || (artista?.nombre ? `${obra.titulo}, obra de ${artista.nombre}.` : obra.titulo)
+const esDisciplina = Astro.props.tipo === 'disciplina'
+const paginaDisciplina = esDisciplina ? await fetchDisciplina(Astro.props.slug) : null
+const ficha = esDisciplina ? null : Astro.props
+const artista = esDisciplina ? paginaDisciplina?.artista : ficha?.artista
+const configuracion = esDisciplina ? paginaDisciplina?.configuracion : ficha?.configuracion
+const titulo = esDisciplina
+	? artista?.nombre
+		? `${paginaDisciplina.disciplina.nombre} — ${artista.nombre}`
+		: paginaDisciplina?.disciplina?.nombre || 'Disciplina'
+	: artista?.nombre
+		? `${ficha.obra.titulo} — ${artista.nombre}`
+		: ficha.obra.titulo
+const descripcion = esDisciplina
+	? paginaDisciplina?.disciplina?.descripcion || titulo
+	: ficha.obra.descripcionCorta || (artista?.nombre ? `${ficha.obra.titulo}, obra de ${artista.nombre}.` : ficha.obra.titulo)
 ---
 
-<Layout
-	title={titulo}
-	description={descripcion}
-	ogImage={obra.imagenes?.[0]?.src}
-	ogImageAlt={obra.imagenes?.[0]?.alt || obra.titulo}
-	nombre={artista?.nombre}
-	subtitulo={artista?.subtitulo}
-	email={configuracion?.email}
-	ciudad={configuracion?.ciudad}
-	instagram={configuracion?.instagram}
-	vimeo={configuracion?.vimeo}
-	youtube={configuracion?.youtube}
->
-	<div class="detalle-volver contenedor">
-		<a class="detalle-volver__link" href="/obras">
-			<span class="detalle-volver__flecha" aria-hidden="true">←</span>
-			Volver a obras
-		</a>
-	</div>
-	<article class="detalle contenedor grilla">
-		<div class="detalle__visor">
-			<Visor client:load imagenes={obra.imagenes} titulo={obra.titulo} slug={obra.slug} />
-		</div>
-		<FichaObra
-			obra={obra}
-			whatsapp={configuracion?.whatsapp}
-			envio={envio}
-			anterior={anterior}
-			siguiente={siguiente}
-		/>
-	</article>
-	<MasObras obras={relacionadas} />
-</Layout>
+{
+	esDisciplina && paginaDisciplina ? (
+		<Layout
+			title={titulo}
+			description={descripcion}
+			nombre={artista?.nombre}
+			subtitulo={artista?.subtitulo}
+			email={configuracion?.email}
+			ciudad={configuracion?.ciudad}
+			instagram={configuracion?.instagram}
+			vimeo={configuracion?.vimeo}
+			youtube={configuracion?.youtube}
+		>
+			<Disciplina disciplina={paginaDisciplina.disciplina} series={paginaDisciplina.series} obras={paginaDisciplina.obras} />
+		</Layout>
+	) : ficha?.obra ? (
+		<Layout
+			title={titulo}
+			description={descripcion}
+			ogImage={ficha.obra.imagenes?.[0]?.src}
+			ogImageAlt={ficha.obra.imagenes?.[0]?.alt || ficha.obra.titulo}
+			nombre={artista?.nombre}
+			subtitulo={artista?.subtitulo}
+			email={configuracion?.email}
+			ciudad={configuracion?.ciudad}
+			instagram={configuracion?.instagram}
+			vimeo={configuracion?.vimeo}
+			youtube={configuracion?.youtube}
+		>
+			<div class="detalle-volver contenedor">
+				{
+					ficha.enSerie?.serie?.href ? (
+						<a class="detalle-volver__link" href={ficha.enSerie.serie.href}>
+							<span class="detalle-volver__flecha" aria-hidden="true">←</span>
+							Volver a la serie
+						</a>
+					) : (
+						<a class="detalle-volver__link" href={rutas.obras}>
+							<span class="detalle-volver__flecha" aria-hidden="true">←</span>
+							Volver a obras
+						</a>
+					)
+				}
+				{
+					ficha.enSerie?.serie?.href && (
+						<a class="detalle-volver__link" href={rutas.obras}>
+							Todas las obras
+						</a>
+					)
+				}
+			</div>
+			<article class="detalle contenedor grilla">
+				<div class="detalle__visor">
+					<Visor
+						client:load
+						imagenes={ficha.obra.imagenes}
+						titulo={ficha.obra.titulo}
+						slug={ficha.obra.slug}
+						relacion={ficha.obra.relacion}
+					/>
+				</div>
+				<FichaObra
+					obra={ficha.obra}
+					whatsapp={configuracion?.whatsapp}
+					envio={configuracion?.envioColeccion || ''}
+					anterior={ficha.enSerie ? ficha.enSerie.anterior : ficha.anterior}
+					siguiente={ficha.enSerie ? ficha.enSerie.siguiente : ficha.siguiente}
+					enSerie={ficha.enSerie}
+				/>
+			</article>
+			<MasObras obras={ficha.relacionadas} serie={ficha.enSerie?.serie || null} />
+		</Layout>
+	) : null
+}

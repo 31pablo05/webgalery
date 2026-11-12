@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import ObraPlaceholder from '../obras/ObraPlaceholder.jsx'
 
 /*
 	Carrusel del hero. Astro lo renderiza en el servidor (la primera diapositiva es el LCP y sale en el
@@ -29,9 +30,10 @@ function Chevron({ sentido }) {
 
 function Diapositiva({ diapositiva, indice, activa, total }) {
 	const { etiqueta, titulo, subtitulo, textoBoton, enlace, externo, imagen } = diapositiva
+	const [rota, setRota] = useState(false)
 	const primera = indice === 0
-	// Un solo h1 por página: el título de la primera diapositiva. Las demás usan h2.
 	const Titulo = primera ? 'h1' : 'h2'
+	const conFoto = Boolean(imagen?.src) && !rota
 	return (
 		<div
 			className={activa ? 'hero__diapositiva is-activa' : 'hero__diapositiva'}
@@ -41,19 +43,27 @@ function Diapositiva({ diapositiva, indice, activa, total }) {
 			aria-hidden={activa ? undefined : 'true'}
 			inert={activa ? undefined : true}
 		>
-			<figure className="hero__figura">
-				<img
-					src={imagen.src}
-					srcSet={imagen.srcset || undefined}
-					sizes="(min-width: 64rem) 72vw, 100vw"
-					alt={imagen.alt}
-					width={imagen.ancho}
-					height={imagen.alto}
-					loading={primera ? 'eager' : 'lazy'}
-					fetchPriority={primera ? 'high' : 'low'}
-					decoding={primera ? 'sync' : 'async'}
-					style={{ '--posicion': imagen.posicion, '--posicion-movil': imagen.posicionMovil }}
-				/>
+			<figure
+				className={imagen?.contenida ? 'hero__figura hero__figura--contenida' : 'hero__figura'}
+				style={imagen?.contenida ? { '--ancho-nativo': `${imagen.ancho}px` } : undefined}
+			>
+				{conFoto ? (
+					<img
+						src={imagen.src}
+						srcSet={imagen.srcset || undefined}
+						sizes="(min-width: 64rem) 72vw, 100vw"
+						alt={imagen.alt}
+						width={imagen.ancho}
+						height={imagen.alto}
+						loading={primera ? 'eager' : 'lazy'}
+						fetchPriority={primera ? 'high' : 'low'}
+						decoding={primera ? 'sync' : 'async'}
+						style={{ '--posicion': imagen.posicion, '--posicion-movil': imagen.posicionMovil }}
+						onError={() => setRota(true)}
+					/>
+				) : (
+					<ObraPlaceholder proporcion="horizontal" className="hero__pendiente" />
+				)}
 			</figure>
 			<div className="hero__texto contenedor">
 				<div className="hero__bloque">

@@ -1,7 +1,7 @@
 // Todas las rutas del sitio, en un solo lugar.
-// Las páginas de series y disciplinas se crean en la Etapa 3. Hasta entonces sus enlaces llevan a
-// /obras para que la demo no tenga 404. En la Etapa 3: poner PROVISORIAS en false y nada más.
-const PROVISORIAS = true
+// /series, /series/[slug] y /obras/[disciplina] ya existen. PROVISORIAS queda en false
+// para que el menú y el Inicio apunten a esas páginas.
+const PROVISORIAS = false
 
 const OBRAS = '/obras'
 

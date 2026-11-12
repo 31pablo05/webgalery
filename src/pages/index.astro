@@ -58,7 +58,13 @@ const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : unde
 	<SeriesDestacadas series={series} />
 	<AudiovisualPapel
 		video={video}
-		respaldo={imagenDisponible(artista?.fotoTaller) ? artista.fotoTaller : null}
+		respaldo={
+			imagenDisponible(artista?.heroAudiovisual?.imagen)
+				? artista.heroAudiovisual.imagen
+				: imagenDisponible(artista?.fotoTaller)
+					? artista.fotoTaller
+					: null
+		}
 		textoAudiovisual={artista?.heroAudiovisual?.bajada?.trim() || ''}
 		papel={papel}
 	/>

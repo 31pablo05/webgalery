@@ -7,7 +7,9 @@ import { rutas } from '../../lib/rutas.js'
 const { series = [] } = Astro.props
 const tarjetas = series.slice(0, 3).map((serie) => ({
 	...serie,
-	detalle: [serie.disciplina?.nombre, serie.tecnicaGeneral].filter(Boolean).join(' · '),
+	detalle: [serie.anio, serie.cantidadObras > 0 && `${serie.cantidadObras} ${serie.cantidadObras === 1 ? 'obra' : 'obras'}`]
+		.filter(Boolean)
+		.join(' · '),
 }))
 ---
 
@@ -32,24 +34,19 @@ const tarjetas = series.slice(0, 3).map((serie) => ({
 					<li class="series__item fade-in">
 						<a class="tarjeta" href={serie.href}>
 							<div class="tarjeta__imagen">
-								{serie.portada && (
-									<Imagen
-										source={serie.portada}
-										alt={serie.portada.alt || serie.nombre}
-										width={800}
-										height={500}
-										sizes="(min-width: 64rem) min(31vw, 540px), (min-width: 48rem) 46vw, 82vw"
-									/>
-								)}
+								<Imagen
+									source={serie.portada}
+									alt={serie.portada?.alt || serie.nombre}
+									width={800}
+									height={500}
+									marco="portada"
+									proporcion="horizontal"
+									sizes="(min-width: 64rem) min(31vw, 540px), (min-width: 48rem) 46vw, 82vw"
+								/>
 							</div>
 							<div class="tarjeta__pie">
-								<div class="tarjeta__textos">
-									<h3 class="tarjeta__nombre">{serie.nombre}</h3>
-									{serie.detalle && <p class="tarjeta__detalle">{serie.detalle}</p>}
-								</div>
-								<span class="tarjeta__circulo" aria-hidden="true">
-									<Flecha />
-								</span>
+								<h3 class="tarjeta__nombre">{serie.nombre}</h3>
+								{serie.detalle && <p class="tarjeta__detalle">{serie.detalle}</p>}
 							</div>
 						</a>
 					</li>
@@ -103,26 +100,20 @@ const tarjetas = series.slice(0, 3).map((serie) => ({
 	}
 
 	.tarjeta {
-		position: relative;
-		display: block;
-		overflow: hidden;
-		color: var(--blanco-calido);
+		display: grid;
+		gap: 0.85rem;
+		color: var(--tinta);
 		text-decoration: none;
-		background-color: var(--azul-profundo);
 	}
 
-	/* Móvil: un poco más alta, para que el nombre entre sin pisar la imagen entera. */
 	.tarjeta__imagen {
 		position: relative;
-		aspect-ratio: 4 / 3;
+		aspect-ratio: 4 / 5;
+		overflow: hidden;
+		background-color: var(--marfil);
 	}
 
-	.tarjeta__textos {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.tarjeta__imagen :global(.lqip) {
+	.tarjeta__imagen :global(.marco) {
 		position: absolute;
 		inset: 0;
 	}
@@ -131,66 +122,28 @@ const tarjetas = series.slice(0, 3).map((serie) => ({
 		transition: transform 0.9s var(--ease);
 	}
 
-	/* Degradado oscuro discreto en el tercio inferior: solo para que el nombre se lea. */
-	.tarjeta__imagen::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(to top, rgb(11 32 45 / 0.85) 0%, rgb(11 32 45 / 0.5) 22%, rgb(11 32 45 / 0) 45%);
-	}
-
 	.tarjeta__pie {
-		position: absolute;
-		inset: auto 0 0;
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 1rem;
-		padding: 1rem 1.1rem 1.1rem;
+		display: grid;
+		gap: 0.3rem;
+		padding-right: 0.5rem;
 	}
 
 	.tarjeta__nombre {
-		font-family: var(--font-ui);
-		font-size: clamp(1rem, 0.6vw + 0.8rem, 1.1875rem);
+		font-family: var(--font-display);
+		font-size: clamp(1.45rem, 1vw + 1rem, 1.85rem);
 		font-weight: 500;
-		line-height: 1.25;
-		letter-spacing: clamp(0.1em, 0.5vw, 0.16em);
+		line-height: 1.1;
+		letter-spacing: 0;
 		text-wrap: balance;
-		text-transform: uppercase;
 	}
 
 	.tarjeta__detalle {
-		margin-top: 0.35rem;
 		font-family: var(--font-ui);
 		font-size: 0.75rem;
 		font-weight: 500;
-		letter-spacing: 0.2em;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
-		color: var(--marfil);
-	}
-
-	.tarjeta__circulo {
-		display: grid;
-		flex: none;
-		place-items: center;
-		width: 2.5rem;
-		height: 2.5rem;
-		border: 1px solid var(--dorado);
-		border-radius: 50%;
-		color: var(--dorado);
-		transition:
-			background-color 0.4s var(--ease),
-			color 0.4s var(--ease);
-	}
-
-	.tarjeta__circulo :global(.flecha) {
-		width: 1rem;
-	}
-
-	.tarjeta:hover .tarjeta__circulo,
-	.tarjeta:focus-visible .tarjeta__circulo {
-		background-color: var(--dorado);
-		color: var(--azul-profundo);
+		color: var(--gris);
 	}
 
 	.tarjeta:focus-visible {
@@ -216,20 +169,7 @@ const tarjetas = series.slice(0, 3).map((serie) => ({
 		}
 
 		.series__lista--1 {
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.tarjeta__imagen {
-			aspect-ratio: 16 / 10;
-		}
-
-		/* Con tres en tablet, la tercera ocupa la fila entera: sin huecos. */
-		.series__lista--3 .series__item:last-child {
-			grid-column: 1 / -1;
-		}
-
-		.series__lista--3 .series__item:last-child .tarjeta__imagen {
-			aspect-ratio: 21 / 9;
+			grid-template-columns: minmax(0, 20rem);
 		}
 	}
 
@@ -242,22 +182,10 @@ const tarjetas = series.slice(0, 3).map((serie) => ({
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
 
-		.series__lista--3 .series__item:last-child {
-			grid-column: auto;
-		}
-
-		.series__lista--3 .series__item:last-child .tarjeta__imagen {
-			aspect-ratio: 16 / 10;
-		}
-
-		.series__lista--1 .tarjeta__imagen {
-			aspect-ratio: 21 / 9;
-		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.tarjeta__imagen :global(img),
-		.tarjeta__circulo {
+		.tarjeta__imagen :global(img) {
 			transition: none;
 		}
 	}

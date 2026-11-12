@@ -1,10 +1,13 @@
 ---
 import Imagen from './Imagen.astro'
 import Flecha from '../layout/Flecha.astro'
+import { imagenDisponible } from '../../lib/sanity.js'
 
 // serie: salida de fetchSeriePrincipal() (la marcada como "Serie principal del Inicio").
 // La portada puede recortarse con su punto de interés porque es una portada, no la obra completa.
+// Sin foto vinculada, el placeholder queda en un marco vertical sobre el azul: no se inventa portada.
 const { serie } = Astro.props
+const conPortada = imagenDisponible(serie?.portada)
 const meta = serie
 	? [serie.anio, serie.cantidadObras > 0 && `${serie.cantidadObras} ${serie.cantidadObras === 1 ? 'obra' : 'obras'}`]
 			.filter(Boolean)
@@ -15,18 +18,23 @@ const meta = serie
 {
 	serie && (
 		<section class="destacada contenedor" aria-labelledby="destacada-titulo">
-			<div class:list={['destacada__banda ctx-azul ctx-azul--profundo textura textura--sutil fade-in', !serie.portada && 'destacada__banda--sin-imagen']}>
-				{serie.portada && (
-					<div class="destacada__imagen">
-						<Imagen
-							source={serie.portada}
-							alt={serie.portada.alt || serie.nombre}
-							width={1200}
-							height={640}
-							sizes="(min-width: 64rem) min(58vw, 960px), 100vw"
-						/>
-					</div>
-				)}
+			<div
+				class:list={[
+					'destacada__banda ctx-azul ctx-azul--profundo textura textura--sutil fade-in',
+					!conPortada && 'destacada__banda--marco',
+				]}
+			>
+				<div class="destacada__imagen">
+					<Imagen
+						source={serie.portada}
+						alt={serie.portada?.alt || serie.nombre}
+						width={conPortada ? 1200 : 800}
+						height={conPortada ? 900 : 1000}
+						marco="portada"
+						proporcion={conPortada ? 'horizontal' : 'vertical'}
+						sizes="(min-width: 64rem) min(34vw, 480px), 70vw"
+					/>
+				</div>
 				<div class="destacada__texto">
 					<p class="label label--acento">Serie destacada</p>
 					<h2 id="destacada-titulo" class="t-display destacada__nombre">
@@ -64,7 +72,7 @@ const meta = serie
 		mask-size: 100% 100%;
 	}
 
-	.destacada__imagen :global(.lqip) {
+	.destacada__imagen :global(.marco) {
 		position: absolute;
 		inset: 0;
 	}
@@ -80,7 +88,7 @@ const meta = serie
 		margin-top: 0.6rem;
 		color: var(--blanco-calido);
 		font-size: clamp(2.5rem, 4.2vw, 4.25rem);
-		text-transform: uppercase;
+		text-wrap: balance;
 	}
 
 	.destacada__descripcion {
@@ -97,8 +105,23 @@ const meta = serie
 		margin-top: 1.75rem;
 	}
 
-	.destacada__banda--sin-imagen .destacada__texto {
-		padding-top: 2.5rem;
+	.destacada__banda--marco .destacada__imagen {
+		display: grid;
+		place-items: center;
+		aspect-ratio: auto;
+		padding: 2rem 1.5rem 0;
+		-webkit-mask-image: none;
+		mask-image: none;
+	}
+
+	.destacada__banda--marco .destacada__imagen :global(.marco) {
+		position: relative;
+		inset: auto;
+		width: min(14rem, 68%);
+	}
+
+	.destacada__banda--marco .destacada__texto {
+		padding-top: 1.75rem;
 	}
 
 	/* Escritorio: portada en el 60 % izquierdo, fundida hacia la derecha con borde irregular. */
@@ -120,12 +143,25 @@ const meta = serie
 			padding: 3rem clamp(2rem, 4vw, 4rem) 3rem 1.5rem;
 		}
 
-		.destacada__banda--sin-imagen {
-			grid-template-columns: 1fr;
+		.destacada__banda--marco {
+			grid-template-columns: minmax(16rem, 34fr) minmax(0, 66fr);
+			align-items: center;
+			min-height: 32rem;
 		}
 
-		.destacada__banda--sin-imagen .destacada__texto {
-			padding: 3.5rem clamp(2rem, 6vw, 6rem);
+		.destacada__banda--marco .destacada__imagen {
+			margin: 0;
+			padding: 2.75rem 2rem;
+			-webkit-mask-image: none;
+			mask-image: none;
+		}
+
+		.destacada__banda--marco .destacada__imagen :global(.marco) {
+			width: min(18rem, 100%);
+		}
+
+		.destacada__banda--marco .destacada__texto {
+			padding: 3.5rem clamp(2rem, 4vw, 4.5rem) 3.5rem 0.5rem;
 		}
 	}
 </style>
