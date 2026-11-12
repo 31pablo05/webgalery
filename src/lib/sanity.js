@@ -4,7 +4,7 @@ import {createClient} from '@sanity/client'
 import {createImageUrlBuilder} from '@sanity/image-url'
 import * as demo from '../data/demo.js'
 import {textoDePortable} from './texto.js'
-import {resolverEnlace, rutaDisciplina, rutaSerie} from './rutas.js'
+import {resolverEnlace, rutaDisciplina, rutaObra, rutaObraConNombre} from './rutas.js'
 
 const API_VERSION = '2026-11-05'
 const COLOR_SUPERFICIE = '#f2e9e0'
@@ -944,11 +944,22 @@ export async function fetchDisciplinas() {
 }
 
 function prepararSerie(serie, obras) {
-  const cantidadObras = obras.filter((obra) => obra.serie?.slug === serie.slug).length
+  // Los cuadros de la obra, en su orden (solo los que ya tienen foto procesada).
+  const cuadros = obras
+    .filter((obra) => obra.serie?.slug === serie.slug)
+    .sort((a, b) => (a.ordenEnSerie ?? 99) - (b.ordenEnSerie ?? 99))
+    .map((obra) => ({
+      titulo: obra.titulo || '',
+      slug: obra.slug || '',
+      href: rutaObra(obra.slug),
+      imagen: obra.imagenPrincipal || null,
+    }))
+  const cantidadObras = cuadros.length
   return {
     nombre: serie.nombre || '',
     slug: serie.slug || '',
-    href: rutaSerie(serie.slug),
+    href: rutaObraConNombre(serie.slug),
+    cuadros,
     disciplina: serie.disciplina ? disciplinaDe(serie.disciplina) : null,
     portada: imagenDisponible(serie.portada) ? serie.portada : null,
     descripcion: textoDePortable(serie.descripcion),
@@ -980,7 +991,8 @@ export async function fetchSeriesDestacadas({excluir = ''} = {}) {
 
 export async function fetchDiapositivasHero() {
   if (!enDemo) return []
-  const disciplinas = (demo.disciplinas || []).map((item) => item.slug)
+  // Las obras con nombre comparten /obras/[slug] con los cuadros: sus enlaces van a la provisoria.
+  const agrupaciones = (demo.series || []).map((item) => item.slug)
   return [...(demo.diapositivasHero || [])]
     .filter((diapositiva) => diapositiva.activa !== false && imagenDisponible(diapositiva.imagen))
     .sort(porOrden)
@@ -990,7 +1002,7 @@ export async function fetchDiapositivasHero() {
       titulo: String(diapositiva.titulo || '').trim(),
       subtitulo: String(diapositiva.subtitulo || '').trim(),
       textoBoton: String(diapositiva.textoBoton || '').trim(),
-      enlace: resolverEnlace(diapositiva.enlace, disciplinas),
+      enlace: resolverEnlace(diapositiva.enlace, agrupaciones),
       imagen: diapositiva.imagen,
     }))
 }

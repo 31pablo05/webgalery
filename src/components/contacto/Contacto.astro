@@ -2,6 +2,8 @@
 import Formulario from './Formulario.jsx'
 
 const {
+	// La página de Contacto ya tiene su h1: ahí el bloque no repite el título.
+	conTitulo = true,
 	foto = null,
 	email = '',
 	instagram = '',
@@ -79,7 +81,7 @@ const filas = [
 	}
 
 	<div class="contacto__datos">
-		<h2 class="contacto__titulo">Contacto</h2>
+		{conTitulo && <h2 class="contacto__titulo">Contacto</h2>}
 		<p class="contacto__texto">
 			Estoy abierta a colaboraciones, proyectos curatoriales, exposiciones y adquisiciones de obra.
 		</p>

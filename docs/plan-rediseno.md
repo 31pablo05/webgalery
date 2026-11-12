@@ -4,7 +4,16 @@ Referencia visual aprobada: la maqueta azul con texturas, que adjunto en el chat
 
 **Estado de partida.** El sitio ya tiene aplicadas las partes anteriores: fondo oscuro, Inter Tight + Instrument Serif, galería y ficha rediseñadas, límite de 30 obras eliminado. Este plan reemplaza la identidad visual por la de CLAUDE.md. Lo que funciona se conserva: Sanity, lightbox, modal de Vimeo, formulario, noindex, carga progresiva, View Transitions.
 
-**Decisiones de arquitectura** (resuelven redundancias del pedido):
+**Reestructura del 10/11 (ya aplicada en el Inicio).** La artista organiza su trabajo en **obras con nombre** formadas por **cuadros**: en toda la interfaz pública se habla de "obras" y "cuadros", nunca de "series" (los tipos internos de Sanity no se renombran; solo los títulos del Studio). Menú plano: INICIO · OBRAS · ILUSTRACIONES · AUDIOVISUAL · SOBRE LA ARTISTA · CONTACTO. El Inicio: hero → frase → obra destacada con la tira de sus cuadros → tres accesos (Obras, Ilustraciones, Audiovisual) → sobre la artista → contacto. "Ilustraciones" reemplaza a "Obras sobre papel" (nombre provisorio).
+
+**Rutas finales (Etapa 3):**
+- /obras: las obras con nombre y, al final, "Otros cuadros" con las piezas sueltas.
+- /obras/[obra]: la obra con todos sus cuadros (tipo interno serie).
+- /obras/[slug]: la ficha de un cuadro suelto (ya existe). El slug es único entre obras con nombre y cuadros.
+- /ilustraciones: el mismo esquema (hoy muestra "Próximamente").
+- /audiovisual, /sobre-mi y /contacto quedan igual. No existe /series.
+
+**Decisiones de arquitectura** (lo que sigue se lee con ese cambio de vocabulario: "serie" = obra con nombre, "obra" = cuadro):
 - **Disciplina es un documento de Sanity, no una lista fija.** Pinturas y Obras sobre papel se cargan como disciplinas, y la cuarta se agrega después desde el Studio, sin tocar código.
 - **Una sola ruta para obras y disciplinas.** /obras/[slug] resuelve tanto una disciplina (/obras/pinturas, /obras/obras-sobre-papel) como una obra (/obras/rukacorazon). Para eso, el Studio valida que ningún slug se repita entre obras y disciplinas.
 - **"Series" y "Obra" se complementan, no se duplican.**

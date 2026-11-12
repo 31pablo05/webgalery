@@ -1,6 +1,7 @@
 // Todas las rutas del sitio, en un solo lugar.
-// Las páginas de series y disciplinas se crean en la Etapa 3. Hasta entonces sus enlaces llevan a
-// /obras para que la demo no tenga 404. En la Etapa 3: poner PROVISORIAS en false y nada más.
+// Las páginas de una obra con nombre (/obras/[obra]) y de sus cuadros se crean en la Etapa 3.
+// Hasta entonces sus enlaces llevan a /obras para que la demo no tenga 404.
+// En la Etapa 3: poner PROVISORIAS en false y nada más.
 const PROVISORIAS = true
 
 const OBRAS = '/obras'
@@ -8,25 +9,27 @@ const OBRAS = '/obras'
 export const rutas = {
 	inicio: '/',
 	obras: OBRAS,
+	ilustraciones: '/ilustraciones',
 	audiovisual: '/audiovisual',
 	sobreMi: '/sobre-mi',
 	contacto: '/contacto',
-	series: PROVISORIAS ? OBRAS : '/series',
 }
 
-// Página de una serie (/series/[slug]).
-export function rutaSerie(slug) {
-	if (PROVISORIAS || !slug) return rutas.series
-	return `/series/${slug}`
-}
-
-// Página de una disciplina (/obras/pinturas, /obras/obras-sobre-papel...).
-export function rutaDisciplina(slug) {
+// Página de una obra con nombre (/obras/[obra]): la obra con todos sus cuadros.
+// (Tipo interno "serie" en Sanity; en la web se habla de obras y cuadros.)
+export function rutaObraConNombre(slug) {
 	if (PROVISORIAS || !slug) return OBRAS
 	return `${OBRAS}/${slug}`
 }
 
-// Página de una obra (/obras/[slug]): ya existe.
+// Sección de una disciplina (/obras, /ilustraciones y las que se agreguen).
+export function rutaDisciplina(slug) {
+	if (slug === 'ilustraciones') return rutas.ilustraciones
+	if (slug === 'obras' || PROVISORIAS || !slug) return OBRAS
+	return `/${slug}`
+}
+
+// Ficha de un cuadro suelto (/obras/[slug]): ya existe.
 export function rutaObra(slug) {
 	return slug ? `${OBRAS}/${slug}` : OBRAS
 }
@@ -37,12 +40,12 @@ export function esExterno(href) {
 }
 
 // Un enlace cargado a mano que apunta a una página que todavía no existe se redirige a la provisoria.
-// disciplinas: slugs de las disciplinas, porque comparten la ruta /obras/[slug] con las obras.
-export function resolverEnlace(href, disciplinas = []) {
+// agrupaciones: slugs de las obras con nombre, porque comparten la ruta /obras/[slug] con los cuadros.
+export function resolverEnlace(href, agrupaciones = []) {
 	const destino = String(href || '').trim()
 	if (!destino || esExterno(destino) || !PROVISORIAS) return destino
-	if (/^\/series(\/|$|\?|#)/.test(destino)) return rutas.series
-	const disciplina = destino.match(/^\/obras\/([^/?#]+)/)
-	if (disciplina && disciplinas.includes(disciplina[1])) return OBRAS
+	if (/^\/series(\/|$|\?|#)/.test(destino)) return OBRAS
+	const interna = destino.match(/^\/obras\/([^/?#]+)/)
+	if (interna && agrupaciones.includes(interna[1])) return OBRAS
 	return destino
 }

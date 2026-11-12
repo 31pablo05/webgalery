@@ -49,7 +49,7 @@ function agrupar(obras) {
 }
 
 function textoContador(cantidad) {
-	return cantidad === 1 ? '1 obra' : `${cantidad} obras`
+	return cantidad === 1 ? '1 cuadro' : `${cantidad} cuadros`
 }
 
 function cantidadDeColumnas(total, ancha) {
