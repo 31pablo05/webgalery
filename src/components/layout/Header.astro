@@ -160,6 +160,12 @@ const redes = [
 		const panel = header.querySelector('[data-menu-panel]')
 		const desktop = window.matchMedia('(min-width: 64rem)')
 
+		const focables = () => {
+			if (!toggle || !panel) return []
+			const internos = [...panel.querySelectorAll('a, button')].filter((el) => !el.closest('[hidden]'))
+			return [toggle, ...internos]
+		}
+
 		const setOpen = (open) => {
 			if (!toggle || !panel) return
 			toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
@@ -167,9 +173,30 @@ const redes = [
 			panel.hidden = !open
 			document.body.classList.toggle('menu-open', open)
 			header.classList.toggle('is-open', open)
+			document.querySelector('main')?.toggleAttribute('inert', open)
+			document.querySelector('footer')?.toggleAttribute('inert', open)
+			if (open) focables()[1]?.focus()
+		}
+
+		const atrapar = (event) => {
+			if (event.key !== 'Tab' || panel?.hidden) return
+			const lista = focables()
+			if (lista.length < 2) return
+			const primero = lista[0]
+			const ultimo = lista[lista.length - 1]
+			const actual = document.activeElement
+			if (event.shiftKey && (actual === primero || !panel.contains(actual))) {
+				event.preventDefault()
+				ultimo.focus()
+			} else if (!event.shiftKey && actual === ultimo) {
+				event.preventDefault()
+				primero.focus()
+			}
 		}
 
 		toggle?.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'))
+		toggle?.addEventListener('keydown', atrapar)
+		panel?.addEventListener('keydown', atrapar)
 		panel?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setOpen(false)))
 		desktop.addEventListener('change', (event) => {
 			if (event.matches) setOpen(false)

@@ -2,28 +2,47 @@
 import Layout from '../layouts/Layout.astro'
 import Hero from '../components/audiovisual/Hero.astro'
 import Listado from '../components/audiovisual/Listado.jsx'
-import { fetchAudiovisual, urlFor } from '../lib/sanity.js'
+import { fetchAudiovisual, imagenDisponible, urlFor } from '../lib/sanity.js'
 
 const { artista, configuracion, bajada, imagen, proyectos } = await fetchAudiovisual()
 const titulo = artista?.nombre ? `Audiovisual — ${artista.nombre}` : 'Audiovisual'
-const ogImage = imagen?.asset ? urlFor(imagen).width(1200).height(630).url() : undefined
+const vimeo = configuracion?.vimeo || ''
+const ogImage = imagenDisponible(imagen) ? urlFor(imagen).width(1200).url() : undefined
 ---
 
 <Layout
 	title={titulo}
-	description={bajada || 'Proyectos de video.'}
+	description={bajada || 'Producción audiovisual.'}
 	ogImage={ogImage}
-	ogImageAlt={imagen?.alt || 'Audiovisual'}
+	ogImageAlt={imagen?.alt || titulo}
 	nombre={artista?.nombre}
 	subtitulo={artista?.subtitulo}
 	email={configuracion?.email}
 	ciudad={configuracion?.ciudad}
 	instagram={configuracion?.instagram}
-	vimeo={configuracion?.vimeo}
+	vimeo={vimeo}
 	youtube={configuracion?.youtube}
 >
-	<Hero bajada={bajada} imagen={imagen} />
-	<section id="proyectos" class="fade-in av-seccion">
-		<Listado client:visible proyectos={proyectos} />
-	</section>
+	<Hero bajada={bajada} imagen={imagen} vimeo={vimeo} />
+	{
+		proyectos.length > 0 ? (
+			<section class="av-cuerpo" aria-label="Proyectos">
+				<Listado client:visible proyectos={proyectos} />
+			</section>
+		) : (
+			<p class="av-vacio contenedor">Todavía no hay proyectos publicados.</p>
+		)
+	}
 </Layout>
+
+<style>
+	.av-cuerpo {
+		padding-bottom: clamp(3rem, 6vw, 5rem);
+	}
+
+	.av-vacio {
+		padding-top: 1.5rem;
+		padding-bottom: clamp(3rem, 6vw, 5rem);
+		color: var(--gris);
+	}
+</style>

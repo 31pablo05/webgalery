@@ -56,16 +56,29 @@ function datosDemo(source) {
 
 let listadoDemo = null
 
-function nombreReal(archivo) {
-  if (!listadoDemo) {
-    const carpeta = join(process.cwd(), 'public', 'demo')
-    try {
-      listadoDemo = new Map(readdirSync(carpeta).map((nombre) => [nombre.toLowerCase(), nombre]))
-    } catch {
-      listadoDemo = new Map()
-    }
+function indexarDemo(carpeta, prefijo = '') {
+  const mapa = new Map()
+  let entradas = []
+  try {
+    entradas = readdirSync(carpeta, { withFileTypes: true })
+  } catch {
+    return mapa
   }
-  return listadoDemo.get(String(archivo).toLowerCase()) || ''
+  for (const entrada of entradas) {
+    if (entrada.name.startsWith('.') || entrada.name === 'celia-originales') continue
+    const relativo = prefijo ? `${prefijo}/${entrada.name}` : entrada.name
+    if (entrada.isDirectory()) {
+      for (const [clave, valor] of indexarDemo(join(carpeta, entrada.name), relativo)) mapa.set(clave, valor)
+      continue
+    }
+    mapa.set(relativo.toLowerCase(), relativo)
+  }
+  return mapa
+}
+
+function nombreReal(archivo) {
+  if (!listadoDemo) listadoDemo = indexarDemo(join(process.cwd(), 'public', 'demo'))
+  return listadoDemo.get(String(archivo).replaceAll('\\', '/').toLowerCase()) || ''
 }
 
 function archivoDemo(archivo) {
@@ -82,13 +95,19 @@ function archivoDemo(archivo) {
 function varianteDemo(datos, anchoPedido, altoPedido = 0) {
   const necesario = Math.max(anchoPedido, altoPedido > 0 ? (altoPedido * datos.ancho) / datos.alto : 0)
   if (necesario > 0) {
+    let cercana = ''
     for (const ancho of ANCHOS_DEMO) {
-      if (ancho < necesario || ancho >= datos.ancho) continue
-      const variante = archivoDemo(`${datos.nombre}-${ancho}.${datos.extension}`)
-      if (variante) return variante
+      if (datos.ancho > 0 && ancho > datos.ancho * 1.35) continue
+      const webp = archivoDemo(`${datos.nombre}-${ancho}.webp`)
+      const variante = webp || archivoDemo(`${datos.nombre}-${ancho}.${datos.extension}`)
+      if (!variante) continue
+      cercana = variante
+      if (ancho >= necesario) return variante
     }
+    if (cercana) return cercana
   }
-  return archivoDemo(datos.archivo)
+  const webp = datos.extension === 'webp' ? '' : archivoDemo(`${datos.nombre}.webp`)
+  return webp || archivoDemo(datos.archivo)
 }
 
 function rectangulo(ancho, alto) {
@@ -277,6 +296,8 @@ function proyectosDemo() {
           descripcionCorta: String(datos.description || '').trim(),
           linkVimeo: link,
           categoria: '',
+          ancho: Number(datos.width) || 0,
+          alto: Number(datos.height) || 0,
           miniaturaUrl: datos.thumbnail_url || '',
         }
       } catch {
@@ -799,12 +820,20 @@ function miniaturaProyecto(imagen) {
     hotspot: imagen.hotspot,
     asset: { _ref: ref },
   }
-  const chica = urlFor(source).width(640).height(360).url()
-  const grande = urlFor(source).width(1280).height(720).url()
+  const anchoReal = Number(imagen?.asset?.metadata?.dimensions?.width) || 0
+  const altoReal = Number(imagen?.asset?.metadata?.dimensions?.height) || 0
+  const ancho = anchoReal > 0 ? Math.min(anchoReal, 1600) : 1280
+  const alto = altoReal > 0 ? Math.round((ancho * altoReal) / anchoReal) : 720
+  const cadena = urlFor(source).width(ancho)
+  const grande = (altoReal > 0 ? cadena : cadena.height(alto)).url()
+  const chico = Math.max(320, Math.round(ancho / 2))
+  const chica = urlFor(source).width(chico).url()
   return {
     src: grande,
-    srcset: `${chica} 640w, ${grande} 1280w`,
+    srcset: `${chica} ${chico}w, ${grande} ${ancho}w`,
     alt: imagen.alt || '',
+    ancho: anchoReal || ancho,
+    alto: altoReal || alto,
   }
 }
 
@@ -822,6 +851,8 @@ async function prepararProyecto(proyecto) {
     destacado: proyecto.destacado === true,
     miniatura,
     miniaturaUrl,
+    ancho: Number(proyecto.ancho) || miniatura?.ancho || 0,
+    alto: Number(proyecto.alto) || miniatura?.alto || 0,
     vimeoId: id,
     vimeoHash: hash,
   }
@@ -928,20 +959,46 @@ function datosContacto(configuracion) {
 		instagram: configuracion?.instagram || '',
 		vimeo: configuracion?.vimeo || '',
 		youtube: configuracion?.youtube || '',
+		creditos: String(configuracion?.creditos || '').trim(),
+	}
+}
+
+export async function fetchPie() {
+	if (enDemo) {
+		return {
+			nombre: demo.artista?.nombre || '',
+			...datosContacto(demo.configuracion),
+		}
+	}
+	const [artista, configuracion] = await Promise.all([
+		client.fetch(`*[_id == "artista"][0]{ nombre }`),
+		client.fetch(`*[_id == "configuracion"][0]{
+      email, whatsapp, ciudad, instagram, vimeo, youtube, creditos
+    }`),
+	])
+	return {
+		nombre: artista?.nombre || '',
+		...datosContacto(configuracion),
 	}
 }
 
 function armarSobreMi(artista, configuracion) {
+	const grupos = [
+		{ id: 'obras', titulo: 'Obras y exposiciones', items: hitosDe(artista?.obrasExposiciones) },
+		{ id: 'premios', titulo: 'Premios, becas y residencias', items: hitosDe(artista?.premiosBecasResidencias) },
+		{ id: 'academica', titulo: 'Formación académica', items: hitosDe(artista?.formacionAcademica) },
+		{ id: 'movimiento', titulo: 'Formación en cuerpo y movimiento', items: hitosDe(artista?.formacionMovimiento) },
+		{ id: 'charlas', titulo: 'Charlas, docencia y otras actividades', items: hitosDe(artista?.charlasDocencia) },
+	].filter((grupo) => grupo.items.length)
 	return {
 		artista: {
 			nombre: artista?.nombre || '',
 			subtitulo: artista?.subtitulo || '',
 			bioCorta: artista?.bioCorta?.trim() || '',
 			bioCompleta: artista?.bioCompleta || [],
-			trayectoria: listaDeTextos(artista?.trayectoria),
-			exposiciones: listaDeTextos(artista?.exposiciones),
-			residencias: listaDeTextos(artista?.residencias),
-			publicaciones: listaDeTextos(artista?.publicaciones),
+			fraseStatement: String(artista?.fraseStatement || '').trim(),
+			statement: artista?.statement || [],
+			grupos,
 			cvUrl: artista?.cv?.asset?.url || '',
 			retrato: fotoRecorte(artista?.retrato, 900, 1200),
 		},
@@ -974,10 +1031,13 @@ export async function fetchSobreMi() {
       subtitulo,
       bioCorta,
       bioCompleta,
-      trayectoria,
-      exposiciones,
-      residencias,
-      publicaciones,
+      fraseStatement,
+      statement,
+      obrasExposiciones[]{ periodo, titulo, detalle },
+      premiosBecasResidencias[]{ periodo, titulo, detalle },
+      formacionAcademica[]{ periodo, titulo, detalle },
+      formacionMovimiento[]{ periodo, titulo, detalle },
+      charlasDocencia[]{ periodo, titulo, detalle },
       cv { asset->{ url } },
       retrato ${imagen},
       fotoTaller ${imagen}

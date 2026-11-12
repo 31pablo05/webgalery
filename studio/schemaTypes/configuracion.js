@@ -64,6 +64,13 @@ export const configuracion = defineType({
       description: 'La ciudad que se muestra junto al ícono de ubicación. Ejemplo: Trelew.',
     }),
     defineField({
+      name: 'creditos',
+      title: 'Créditos',
+      type: 'string',
+      group: 'contacto',
+      description: 'Línea institucional del pie, si corresponde. Si queda vacía, no se muestra.',
+    }),
+    defineField({
       name: 'obraPrincipal',
       title: 'Obra principal de inicio',
       type: 'reference',

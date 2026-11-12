@@ -1,31 +1,75 @@
 ---
 import Imagen from '../home/Imagen.astro'
 
-const { bajada = '', imagen } = Astro.props
-const tieneImagen = Boolean(imagen?.asset)
+const { bajada = '', imagen = null, vimeo = '' } = Astro.props
 ---
 
-<section class:list={['av-hero grid grid-cols-1', tieneImagen && 'lg:grid-cols-[2fr_3fr]']}>
-	<div class="ctx-azul ctx-azul--profundo order-2 flex flex-col justify-end px-6 py-12 text-white lg:order-1 lg:px-12 lg:py-14">
-		<h1 class="av-hero__titulo">Audiovisual</h1>
-		{bajada && <p class="mt-6 max-w-md text-base leading-relaxed text-white/80">{bajada}</p>}
-		<a class="btn btn-outline btn-on-dark mt-8 w-fit" href="#proyectos">
-			Ver proyectos <span class="arrow" aria-hidden="true">→</span>
-		</a>
+<header class="av-pagina">
+	<div class="av-pagina__texto contenedor">
+		<p class="label">Audiovisual</p>
+		<h1 class="page-title">Audiovisual</h1>
+		{bajada && <p class="t-texto av-pagina__bajada">{bajada}</p>}
+		{
+			vimeo && (
+				<a class="av-pagina__perfil" href={vimeo} target="_blank" rel="noopener noreferrer">
+					Perfil de Vimeo
+				</a>
+			)
+		}
 	</div>
 	{
-		tieneImagen && (
-			<div class="relative order-1 min-h-[52vw] lg:order-2 lg:min-h-0">
+		imagen && (
+			<figure class="av-pagina__still contenedor">
 				<Imagen
 					source={imagen}
-					alt={imagen?.alt || 'Audiovisual'}
+					alt={imagen.alt || 'Registro audiovisual'}
 					width={1600}
-					height={900}
-					sizes="(min-width: 64rem) 60vw, 100vw"
-					priority={true}
-					class="absolute inset-0"
+					marco="portada"
+					proporcion="horizontal"
+					priority
+					sizes="(min-width: 64rem) 72rem, 100vw"
 				/>
-			</div>
+			</figure>
 		)
 	}
-</section>
+</header>
+
+<style>
+	.av-pagina {
+		padding-top: clamp(2.5rem, 6vw, 4.5rem);
+	}
+
+	.av-pagina__texto {
+		display: grid;
+		justify-items: start;
+		gap: 0.85rem;
+	}
+
+	.av-pagina__bajada {
+		max-width: 36rem;
+	}
+
+	.av-pagina__perfil {
+		color: var(--azul-medio);
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		text-decoration: none;
+	}
+
+	.av-pagina__still {
+		margin-top: clamp(1.5rem, 3vw, 2.5rem);
+		margin-bottom: 0;
+	}
+
+	.av-pagina__still :global(.marco) {
+		width: min(100%, 72rem);
+	}
+
+	.av-pagina__perfil:focus-visible {
+		outline: 1px solid var(--azul-medio);
+		outline-offset: 4px;
+	}
+</style>

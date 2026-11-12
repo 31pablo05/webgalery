@@ -48,6 +48,18 @@ const titulo = esDisciplina
 const descripcion = esDisciplina
 	? paginaDisciplina?.disciplina?.descripcion || titulo
 	: ficha.obra.descripcionCorta || (artista?.nombre ? `${ficha.obra.titulo}, obra de ${artista.nombre}.` : ficha.obra.titulo)
+const datos = !esDisciplina && ficha?.obra?.titulo
+	? {
+			'@context': 'https://schema.org',
+			'@type': 'VisualArtwork',
+			name: ficha.obra.titulo,
+			...(artista?.nombre ? { creator: { '@type': 'Person', name: artista.nombre } } : {}),
+			...(ficha.obra.imagenes?.[0]?.src ? { image: new URL(ficha.obra.imagenes[0].src, Astro.site ?? Astro.url).href } : {}),
+			...(ficha.obra.anio ? { dateCreated: String(ficha.obra.anio) } : {}),
+			...(ficha.obra.tecnica ? { artMedium: ficha.obra.tecnica } : {}),
+			url: new URL(Astro.url.pathname, Astro.site ?? Astro.url).href,
+		}
+	: null
 ---
 
 {
@@ -78,6 +90,7 @@ const descripcion = esDisciplina
 			instagram={configuracion?.instagram}
 			vimeo={configuracion?.vimeo}
 			youtube={configuracion?.youtube}
+			datos={datos}
 		>
 			<div class="detalle-volver contenedor">
 				{

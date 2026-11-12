@@ -10,8 +10,9 @@ function esEmail(valor) {
 }
 
 // variante "fila": versión compacta del Inicio (nombre y email en una fila, mensaje debajo y el botón al costado).
-export default function Formulario({ clave = '', whatsapp = '', variante = '' }) {
+export default function Formulario({ clave = '', whatsapp = '', email: emailContacto = '', instagram = '', vimeo = '', variante = '' }) {
 	const fila = variante === 'fila'
+	const prefijo = fila ? 'inicio' : 'contacto'
 	const [nombre, setNombre] = useState('')
 	const [email, setEmail] = useState('')
 	const [mensaje, setMensaje] = useState('')
@@ -25,6 +26,11 @@ export default function Formulario({ clave = '', whatsapp = '', variante = '' })
 		const limpio = (obra || '').replace(/\s+/g, ' ').trim()
 		if (limpio) setMensaje(`Consulta por la obra: ${limpio}`)
 	}, [])
+
+	useEffect(() => {
+		const form = document.getElementById(`${prefijo}-form`)
+		if (form) form.dataset.listo = '1'
+	}, [prefijo])
 
 	function validar() {
 		const siguientes = {}
@@ -51,7 +57,7 @@ export default function Formulario({ clave = '', whatsapp = '', variante = '' })
 			return
 		}
 		if (!clave) {
-			setEstado('error')
+			setEstado('sin-clave')
 			return
 		}
 		setEstado('enviando')
@@ -86,8 +92,15 @@ export default function Formulario({ clave = '', whatsapp = '', variante = '' })
 		}
 	}
 
+	const canales = [
+		emailContacto && { href: `mailto:${emailContacto}`, label: 'email' },
+		whatsappHref && { href: whatsappHref, label: 'WhatsApp', externo: true },
+		instagram && { href: instagram, label: 'Instagram', externo: true },
+		vimeo && { href: vimeo, label: 'Vimeo', externo: true },
+	].filter(Boolean)
+
 	return (
-		<form className={fila ? 'formulario formulario--fila' : 'formulario'} onSubmit={enviar} noValidate>
+		<form id={`${prefijo}-form`} className={fila ? 'formulario formulario--fila' : 'formulario'} onSubmit={enviar} noValidate>
 			<div className="contacto-trampa" aria-hidden="true">
 				<label>
 					No completar
@@ -102,57 +115,57 @@ export default function Formulario({ clave = '', whatsapp = '', variante = '' })
 				</label>
 			</div>
 
-			<div className="campo">
-				<label htmlFor="contacto-nombre">Nombre</label>
+			<div className={errores.nombre ? 'campo campo--error' : 'campo'}>
+				<label htmlFor={`${prefijo}-nombre`}>Nombre</label>
 				<input
-					id="contacto-nombre"
+					id={`${prefijo}-nombre`}
 					name="nombre"
 					type="text"
 					autoComplete="name"
 					value={nombre}
 					aria-invalid={errores.nombre ? 'true' : undefined}
-					aria-describedby={errores.nombre ? 'contacto-nombre-error' : undefined}
+					aria-describedby={errores.nombre ? `${prefijo}-nombre-error` : undefined}
 					onChange={(event) => setNombre(event.target.value)}
 				/>
 				{errores.nombre && (
-					<p id="contacto-nombre-error" className="campo__error">
+					<p id={`${prefijo}-nombre-error`} className="campo__error">
 						{errores.nombre}
 					</p>
 				)}
 			</div>
 
-			<div className="campo">
-				<label htmlFor="contacto-email">Email</label>
+			<div className={errores.email ? 'campo campo--error' : 'campo'}>
+				<label htmlFor={`${prefijo}-email`}>Email</label>
 				<input
-					id="contacto-email"
+					id={`${prefijo}-email`}
 					name="email"
 					type="email"
 					autoComplete="email"
 					value={email}
 					aria-invalid={errores.email ? 'true' : undefined}
-					aria-describedby={errores.email ? 'contacto-email-error' : undefined}
+					aria-describedby={errores.email ? `${prefijo}-email-error` : undefined}
 					onChange={(event) => setEmail(event.target.value)}
 				/>
 				{errores.email && (
-					<p id="contacto-email-error" className="campo__error">
+					<p id={`${prefijo}-email-error`} className="campo__error">
 						{errores.email}
 					</p>
 				)}
 			</div>
 
-			<div className="campo">
-				<label htmlFor="contacto-mensaje">Mensaje</label>
+			<div className={errores.mensaje ? 'campo campo--error' : 'campo'}>
+				<label htmlFor={`${prefijo}-mensaje`}>Mensaje</label>
 				<textarea
-					id="contacto-mensaje"
+					id={`${prefijo}-mensaje`}
 					name="mensaje"
 					rows={fila ? 2 : 6}
 					value={mensaje}
 					aria-invalid={errores.mensaje ? 'true' : undefined}
-					aria-describedby={errores.mensaje ? 'contacto-mensaje-error' : undefined}
+					aria-describedby={errores.mensaje ? `${prefijo}-mensaje-error` : undefined}
 					onChange={(event) => setMensaje(event.target.value)}
 				/>
 				{errores.mensaje && (
-					<p id="contacto-mensaje-error" className="campo__error">
+					<p id={`${prefijo}-mensaje-error`} className="campo__error">
 						{errores.mensaje}
 					</p>
 				)}
@@ -181,20 +194,29 @@ export default function Formulario({ clave = '', whatsapp = '', variante = '' })
 
 			{estado === 'ok' && (
 				<p className="formulario__aviso" role="status">
-					Gracias, te respondo a la brevedad.
+					Gracias. El mensaje se envió.
 				</p>
 			)}
-			{estado === 'error' && (
+			{(estado === 'error' || estado === 'sin-clave') && (
 				<p className="formulario__aviso" role="alert">
-					No se pudo enviar.{' '}
-					{whatsappHref ? (
-						<a href={whatsappHref} target="_blank" rel="noopener noreferrer">
-							Escribime por WhatsApp
-						</a>
-					) : (
-						'Escribime por WhatsApp'
-					)}{' '}
-					y lo vemos por ahí.
+					{estado === 'sin-clave'
+						? 'El formulario todavía no está configurado.'
+						: 'No se pudo enviar. Revisá la conexión e intentá de nuevo.'}
+					{canales.length > 0 && (
+						<>
+							{' '}
+							También podés escribir por{' '}
+							{canales.map((canal, indice) => (
+								<span key={canal.label}>
+									{indice > 0 && (indice === canales.length - 1 ? ' o ' : ', ')}
+									<a href={canal.href} target={canal.externo ? '_blank' : undefined} rel={canal.externo ? 'noopener noreferrer' : undefined}>
+										{canal.label}
+									</a>
+								</span>
+							))}
+							.
+						</>
+					)}
 				</p>
 			)}
 		</form>

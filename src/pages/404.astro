@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro'
+---
+
+<Layout title="Página no encontrada" description="La página que buscás no está en el sitio.">
+	<section class="pagina-404 contenedor">
+		<p class="label">404</p>
+		<h1 class="page-title">Esta página no está en el sitio</h1>
+		<p class="t-texto">El enlace puede estar mal escrito o la página ya no existe.</p>
+		<a class="btn btn-relleno" href="/">Volver al inicio</a>
+	</section>
+</Layout>
+
+<style>
+	.pagina-404 {
+		display: grid;
+		justify-items: start;
+		gap: 1rem;
+		padding-top: clamp(3rem, 8vw, 6rem);
+		padding-bottom: clamp(3rem, 8vw, 6rem);
+	}
+
+	.pagina-404 .page-title {
+		max-width: 12em;
+	}
+</style>

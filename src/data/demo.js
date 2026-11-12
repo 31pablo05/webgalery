@@ -2,6 +2,17 @@
 // Contienen únicamente información confirmada de Celia Gómez Perea: lo que falta
 // (año, técnica, medidas, disponibilidad, trayectoria) queda vacío para completarse desde Sanity.
 
+import {
+	bioParrafos,
+	charlasDocencia,
+	formacionAcademica,
+	formacionMovimiento,
+	fraseStatement,
+	obrasExposiciones,
+	premiosBecasResidencias,
+	statementParrafos,
+} from './sobre.js'
+
 function foto(archivo, ancho, alto, alt = '') {
 	const [, nombre, extension] = String(archivo).match(/^(.+)\.([a-z0-9]+)$/i)
 	const id = `image-demo-${nombre}-${ancho}x${alto}-${extension.toLowerCase()}`
@@ -103,6 +114,32 @@ export const disciplinas = [
 	},
 ]
 
+// Fotos reales en public/demo/obras/. El número es un identificador estable, no un título artístico.
+const FOTOS_OBRA = [
+	['01', 2048, 1152],
+	['02', 1152, 2048],
+	['03', 1152, 2048],
+	['04', 1152, 2048],
+	['05', 1152, 2048],
+	['06', 2048, 1152],
+	['07', 1600, 1200],
+	['08', 1200, 1600],
+	['09', 1200, 1600],
+]
+
+const registrosFotograficos = FOTOS_OBRA.map(([numero, ancho, alto], indice) =>
+	obra({
+		titulo: `Registro ${numero}`,
+		slug: `registro-${numero}`,
+		archivo: `obras/celia-foto-obra-${numero}.webp`,
+		ancho,
+		alto,
+		alt: `Registro fotográfico ${numero} de una obra de Celia Gómez Perea, pendiente de catalogación.`,
+		descripcion: 'Pendiente de catalogación.',
+		orden: 90 + indice * 10,
+	}),
+)
+
 // Año, técnica, medidas y categoría quedan sin cargar, y el estado en "sin especificar": no están confirmados.
 export const obras = [
 	obra({
@@ -188,6 +225,9 @@ export const obras = [
 		orden: 80,
 		disciplina: 'pinturas',
 	}),
+	// Fotografías de public/demo/obras/. Son obras distintas de las fichas de arriba.
+	// Título, serie, técnica y medidas siguen sin confirmar: no se infieren de la foto.
+	...registrosFotograficos,
 ]
 
 const imagenDe = (slug) => obras.find((item) => item.slug === slug)?.imagenPrincipal || null
@@ -309,9 +349,6 @@ export const proyectosArtisticos = [
 
 const principal = obras.find((item) => item.slug === 'rukacorazon')
 
-const RESUMEN =
-	'Celia Gómez Perea —Celi Gómez en redes— es artista visual. Su lenguaje principal es el dibujo en blanco y negro, con tinta y línea, que llega a la escala de la instalación. También trabaja la experimentación gráfica, la obra bidimensional y la producción audiovisual, y desarrolla su obra por proyectos.'
-
 export const artista = {
 	_id: 'artista',
 	_type: 'artista',
@@ -372,20 +409,15 @@ export const artista = {
 	// Bio corta de docs/contenido-sobre-la-artista.md, tal cual.
 	bioCorta:
 		'Celia Gómez Perea es artista visual y docente de Chubut. Trabaja e investiga el territorio de forma interdisciplinar, entre la pintura, el dibujo, la instalación, la performance y el video.',
-	bioCompleta: [
-		parrafo([{ texto: RESUMEN }]),
-		parrafo([
-			{
-				texto: 'Texto de demostración: la biografía completa y la trayectoria confirmada se cargan desde el panel de contenidos.',
-			},
-		]),
-	],
+	bioCompleta: bioParrafos.map((texto) => parrafo([{ texto }])),
+	fraseStatement,
+	statement: statementParrafos.map((texto) => parrafo([{ texto }])),
 	trayectoria: [],
-	obrasExposiciones: [],
-	premiosBecasResidencias: [],
-	formacionAcademica: [],
-	formacionMovimiento: [],
-	charlasDocencia: [],
+	obrasExposiciones,
+	premiosBecasResidencias,
+	formacionAcademica,
+	formacionMovimiento,
+	charlasDocencia,
 	exposiciones: [],
 	residencias: [],
 	publicaciones: [],
@@ -402,6 +434,7 @@ export const configuracion = {
 	instagram: 'https://www.instagram.com/celiagomezperea/',
 	vimeo: 'https://vimeo.com/celigomez',
 	youtube: '',
+	creditos: '',
 	envioColeccion: '',
 	bajadaGaleria: '',
 	obraPrincipal: principal

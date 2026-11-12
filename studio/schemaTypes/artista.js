@@ -162,6 +162,14 @@ export const artista = defineType({
       description: 'Se muestra en el inicio. Con dos o tres frases alcanza.',
     }),
     defineField({
+      name: 'fraseStatement',
+      title: 'Frase del statement',
+      type: 'text',
+      rows: 3,
+      group: 'bio',
+      description: 'La frase que se muestra destacada arriba del statement. Usá una oración que ya esté en el texto.',
+    }),
+    defineField({
       name: 'statement',
       title: 'Statement',
       type: 'array',

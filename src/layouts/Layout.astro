@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
-import { fetchDisciplinas } from '../lib/sanity.js';
+import { fetchDisciplinas, fetchPie } from '../lib/sanity.js';
 
 const {
   title = '',
@@ -16,11 +16,14 @@ const {
   vimeo,
   youtube,
   ogImageAlt = '',
+  datos = null,
   // true cuando la página empieza con una banda azul (el Inicio): el encabezado arranca transparente.
   heroAzul = false,
 } = Astro.props;
+const jsonLd = datos ? JSON.stringify(datos).replace(/</g, '\\u003c') : ''
 // Las disciplinas arman el desplegable "Obra" del menú en todas las páginas.
 const disciplinas = (await fetchDisciplinas()).filter((disciplina) => disciplina.mostrarEnMenu);
+const pie = await fetchPie();
 const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 const texto = String(description || '').replace(/\s+/g, ' ').trim();
 const meta = texto.length > 160 ? `${texto.slice(0, 157).replace(/\s+\S*$/, '').trim()}…` : texto;
@@ -47,6 +50,7 @@ const indexar = ['true', '1', 'si', 'sí'].includes(
     <meta property="og:locale" content="es_AR" />
     {imagenOg && <meta property="og:image" content={imagenOg} />}
     {imagenOg && ogImageAlt && <meta property="og:image:alt" content={ogImageAlt} />}
+    {jsonLd && <script type="application/ld+json" set:html={jsonLd} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -60,11 +64,18 @@ const indexar = ['true', '1', 'si', 'sí'].includes(
     </script>
   </head>
   <body>
-    <Header disciplinas={disciplinas} instagram={instagram} vimeo={vimeo} heroAzul={heroAzul} />
+    <Header disciplinas={disciplinas} instagram={pie.instagram || instagram} vimeo={pie.vimeo || vimeo} heroAzul={heroAzul} />
     <main>
       <slot />
     </main>
-    <Footer nombre={nombre} email={email} instagram={instagram} vimeo={vimeo} />
+    <Footer
+      nombre={pie.nombre || nombre}
+      email={pie.email || email}
+      instagram={pie.instagram || instagram}
+      vimeo={pie.vimeo || vimeo}
+      youtube={pie.youtube || youtube}
+      creditos={pie.creditos}
+    />
     <script>
       // Fundido de la vista borrosa (LQIP) a la imagen nítida cuando termina de cargar.
       document.querySelectorAll('img[data-nitida]').forEach((img) => {
@@ -87,6 +98,13 @@ const indexar = ['true', '1', 'si', 'sí'].includes(
         const caer = () => img.closest('[data-marco-caja]')?.classList.add('is-rota');
         if (img.complete && img.naturalWidth === 0) caer();
         else img.addEventListener('error', caer, { once: true });
+      });
+
+      // Hasta que React hidrata el formulario, un envío nativo recargaría la página.
+      document.querySelectorAll('form.formulario').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+          if (form.dataset.listo !== '1') event.preventDefault();
+        });
       });
 
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

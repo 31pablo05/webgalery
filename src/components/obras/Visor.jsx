@@ -77,7 +77,7 @@ export default function Visor({ imagenes = [], titulo = '', slug = '', relacion 
 		setAbierto(false)
 		fijarZoom(1)
 		const destino = retorno.current || escena.current
-		window.requestAnimationFrame(() => destino?.focus?.())
+		window.setTimeout(() => destino?.focus?.(), 0)
 	}
 
 	useEffect(() => {
@@ -196,8 +196,8 @@ export default function Visor({ imagenes = [], titulo = '', slug = '', relacion 
 		setOrigen({ x: inicio.ox + event.clientX - inicio.x, y: inicio.oy + event.clientY - inicio.y })
 	}
 
-	function abrir() {
-		retorno.current = document.activeElement
+	function abrir(event) {
+		retorno.current = event?.currentTarget || escena.current
 		setAbierto(true)
 	}
 

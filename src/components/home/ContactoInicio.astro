@@ -3,7 +3,7 @@ import Formulario from '../contacto/Formulario.jsx'
 import Trazo from '../layout/Trazo.astro'
 
 // Contacto del Inicio: reutiliza el formulario de Web3Forms (con y sin clave) en su variante en fila.
-const { clave = '', whatsapp = '' } = Astro.props
+const { clave = '', whatsapp = '', email = '', instagram = '', vimeo = '' } = Astro.props
 ---
 
 <section class="contacto-inicio ctx-marfil" aria-labelledby="contacto-inicio-titulo">
@@ -17,7 +17,7 @@ const { clave = '', whatsapp = '' } = Astro.props
 			<p class="t-texto contacto-inicio__texto">Consultas sobre obra, adquisiciones, proyectos o exhibiciones.</p>
 		</div>
 		<div class="contacto-inicio__form">
-			<Formulario client:visible clave={clave} whatsapp={whatsapp} variante="fila" />
+			<Formulario client:visible clave={clave} whatsapp={whatsapp} email={email} instagram={instagram} vimeo={vimeo} variante="fila" />
 		</div>
 	</div>
 </section>

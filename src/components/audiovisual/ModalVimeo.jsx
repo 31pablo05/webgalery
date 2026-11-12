@@ -64,7 +64,10 @@ export default function ModalVimeo({ proyecto, onCerrar }) {
 			>
 				<IconoCerrar />
 			</button>
-			<div className="av-modal__marco" onClick={(event) => event.stopPropagation()}>
+			<div
+				className={proyecto.alto > proyecto.ancho && proyecto.ancho > 0 ? 'av-modal__marco av-modal__marco--vertical' : 'av-modal__marco'}
+				onClick={(event) => event.stopPropagation()}
+			>
 				<iframe
 					src={embed(proyecto)}
 					title={proyecto.titulo || 'Video'}

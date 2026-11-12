@@ -1,98 +1,260 @@
 ---
-const {
-	retrato = null,
-	bioHtml = '',
-	cvUrl = '',
-	trayectoria = [],
-	exposiciones = [],
-	residencias = [],
-	publicaciones = [],
-} = Astro.props
+import { htmlDePortable } from '../../lib/texto.js'
 
-const grupos = [
-	{ id: 'trayectoria', etiqueta: 'Trayectoria', items: trayectoria },
-	{ id: 'exposiciones', etiqueta: 'Exposiciones', items: exposiciones },
-	{ id: 'residencias', etiqueta: 'Residencias', items: residencias },
-	{ id: 'publicaciones', etiqueta: 'Publicaciones', items: publicaciones },
-].filter((grupo) => grupo.items.length > 0)
+const { artista } = Astro.props
+const bioHtml = htmlDePortable(artista?.bioCompleta)
+const statementHtml = htmlDePortable(artista?.statement)
+const grupos = artista?.grupos || []
+const visibles = 4
 ---
 
-<section class:list={['sobre', grupos.length > 0 && 'sobre--con-cv']}>
-	<div class="sobre__bio">
-		<h1 class="page-title sobre__titulo">Sobre la artista</h1>
-		<div class:list={['sobre__cuerpo', retrato && 'sobre__cuerpo--con-foto']}>
-			{
-				retrato && (
-					<div class="sobre__retrato">
-						<img
-							src={retrato.src}
-							srcset={retrato.srcset}
-							sizes="(min-width: 64rem) 22vw, 80vw"
-							alt={retrato.alt || 'Retrato'}
-							width={retrato.ancho}
-							height={retrato.alto}
-							loading="eager"
-							fetchpriority="high"
-							decoding="async"
-						/>
-					</div>
-				)
-			}
-			<div>
-				{bioHtml && <div class="sobre__texto" set:html={bioHtml} />}
-				{
-					cvUrl && (
-						<a class="btn btn-outline sobre__cv-btn" href={cvUrl} target="_blank" rel="noopener noreferrer">
-							Ver CV completo <span class="arrow" aria-hidden="true">→</span>
-						</a>
-					)
-				}
-			</div>
+<article class="sobre">
+	<header class="sobre-presentacion contenedor">
+		{
+			artista?.retrato && (
+				<figure class="sobre-presentacion__foto">
+					<img
+						src={artista.retrato.src}
+						srcset={artista.retrato.srcset}
+						sizes="(min-width: 64rem) 22rem, 70vw"
+						alt={artista.retrato.alt || artista.nombre}
+						width={artista.retrato.ancho}
+						height={artista.retrato.alto}
+						loading="eager"
+						fetchpriority="high"
+						decoding="async"
+					/>
+				</figure>
+			)
+		}
+		<div class="sobre-presentacion__texto">
+			<p class="label">Sobre la artista</p>
+			<h1 class="page-title">{artista?.nombre}</h1>
+			{artista?.bioCorta && <p class="t-texto sobre-presentacion__corta">{artista.bioCorta}</p>}
 		</div>
-	</div>
+	</header>
+
+	{
+		bioHtml && (
+			<section class="sobre-bio contenedor" aria-label="Biografía">
+				<div class="sobre-lectura" set:html={bioHtml} />
+			</section>
+		)
+	}
+
+	{
+		(artista?.fraseStatement || statementHtml) && (
+			<section class="sobre-statement contenedor" aria-labelledby="statement-titulo">
+				<h2 id="statement-titulo" class="sobre-statement__frase">
+					{artista.fraseStatement}
+				</h2>
+				<span class="filete filete--largo" aria-hidden="true" />
+				{statementHtml && <div class="sobre-lectura" set:html={statementHtml} />}
+			</section>
+		)
+	}
 
 	{
 		grupos.length > 0 && (
-			<aside class="sobre__resumen">
-				<h2 class="sobre__resumen-titulo">CV (resumen)</h2>
-				<ul class="cv-lista">
-					{grupos.map((grupo) => (
-						<li class:list={['cv-item', grupo.id === 'publicaciones' && 'cv-item--publicaciones']}>
-							{grupo.id === 'trayectoria' && (
-								<svg viewBox="0 0 24 24" aria-hidden="true">
-									<circle cx="12" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.25" />
-									<path d="M5.5 19.5c1.1-3.2 3.2-4.8 6.5-4.8s5.4 1.6 6.5 4.8" fill="none" stroke="currentColor" stroke-width="1.25" />
-								</svg>
-							)}
-							{grupo.id === 'exposiciones' && (
-								<svg viewBox="0 0 24 24" aria-hidden="true">
-									<rect x="4" y="5" width="16" height="14" fill="none" stroke="currentColor" stroke-width="1.25" />
-								</svg>
-							)}
-							{grupo.id === 'residencias' && (
-								<svg viewBox="0 0 24 24" aria-hidden="true">
-									<rect x="7" y="7" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.25" />
-									<rect x="4" y="4" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.25" />
-								</svg>
-							)}
-							{grupo.id === 'publicaciones' && (
-								<svg viewBox="0 0 24 24" aria-hidden="true">
-									<path d="M5 5.5h6.2A2.3 2.3 0 0 1 13.5 7.8V19a2.2 2.2 0 0 0-2.2-1.6H5z" fill="none" stroke="currentColor" stroke-width="1.25" />
-									<path d="M19 5.5h-6.2A2.3 2.3 0 0 0 10.5 7.8V19a2.2 2.2 0 0 1 2.2-1.6H19z" fill="none" stroke="currentColor" stroke-width="1.25" />
-								</svg>
-							)}
-							<div>
-								<h3 class="label">{grupo.etiqueta}</h3>
-								<ul>
-									{grupo.items.map((item) => (
-										<li>{item}</li>
+			<section class="sobre-trayectoria contenedor" aria-labelledby="trayectoria-titulo">
+				<h2 id="trayectoria-titulo" class="titulo-seccion">Trayectoria</h2>
+				<div class="cronologia">
+					{grupos.map((grupo) => {
+						const primeros = grupo.items.slice(0, visibles)
+						const resto = grupo.items.slice(visibles)
+						return (
+							<section class="cronologia__grupo" aria-labelledby={`grupo-${grupo.id}`}>
+								<h3 id={`grupo-${grupo.id}`} class="cronologia__titulo">{grupo.titulo}</h3>
+								<ol class="cronologia__lista">
+									{primeros.map((item) => (
+										<li>
+											{item.periodo && <p class="cronologia__periodo">{item.periodo}</p>}
+											<p class="cronologia__hecho">{item.titulo}</p>
+											{item.detalle && <p class="cronologia__detalle">{item.detalle}</p>}
+										</li>
 									))}
-								</ul>
-							</div>
-						</li>
-					))}
-				</ul>
-			</aside>
+								</ol>
+								{
+									resto.length > 0 && (
+										<details class="cronologia__mas">
+											<summary>Ver {resto.length} más</summary>
+											<ol class="cronologia__lista">
+												{resto.map((item) => (
+													<li>
+														{item.periodo && <p class="cronologia__periodo">{item.periodo}</p>}
+														<p class="cronologia__hecho">{item.titulo}</p>
+														{item.detalle && <p class="cronologia__detalle">{item.detalle}</p>}
+													</li>
+												))}
+											</ol>
+										</details>
+									)
+								}
+							</section>
+						)
+					})}
+				</div>
+			</section>
 		)
 	}
-</section>
+
+	{
+		artista?.cvUrl && (
+			<p class="sobre-cv contenedor">
+				<a class="btn btn-relleno" href={artista.cvUrl}>
+					Descargar CV
+				</a>
+			</p>
+		)
+	}
+</article>
+
+<style>
+	.sobre {
+		padding-bottom: clamp(3rem, 6vw, 5rem);
+	}
+
+	.sobre-presentacion {
+		display: grid;
+		gap: 1.5rem;
+		align-items: end;
+		padding-top: clamp(2.5rem, 6vw, 4.5rem);
+	}
+
+	.sobre-presentacion__foto {
+		margin: 0;
+		width: min(100%, 16rem);
+	}
+
+	.sobre-presentacion__foto img {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.sobre-presentacion__texto {
+		display: grid;
+		justify-items: start;
+		gap: 0.75rem;
+	}
+
+	.sobre-presentacion__corta {
+		max-width: 36rem;
+	}
+
+	.sobre-bio,
+	.sobre-statement,
+	.sobre-trayectoria {
+		padding-top: clamp(2.5rem, 5vw, 4rem);
+	}
+
+	.sobre-lectura {
+		max-width: 40rem;
+		display: grid;
+		gap: 1rem;
+	}
+
+	.sobre-lectura :global(p) {
+		font-family: var(--font-body);
+		font-size: var(--tipo-cuerpo);
+		line-height: 1.7;
+	}
+
+	.sobre-statement {
+		display: grid;
+		justify-items: start;
+		gap: 1.25rem;
+	}
+
+	.sobre-statement__frase {
+		max-width: 18em;
+		font-family: var(--font-display);
+		font-size: clamp(2rem, 4vw, 3.25rem);
+		font-weight: 500;
+		font-style: italic;
+		line-height: 1.12;
+	}
+
+	.cronologia {
+		display: grid;
+		gap: 2.5rem;
+		margin-top: 1.75rem;
+	}
+
+	.cronologia__titulo {
+		margin-bottom: 1rem;
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--azul-medio);
+	}
+
+	.cronologia__lista {
+		display: grid;
+		gap: 1.15rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		border-left: 1px solid var(--color-line);
+	}
+
+	.cronologia__lista li {
+		display: grid;
+		gap: 0.2rem;
+		padding-left: 1rem;
+	}
+
+	.cronologia__periodo {
+		color: var(--gris);
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.12em;
+	}
+
+	.cronologia__hecho {
+		font-family: var(--font-display);
+		font-size: 1.35rem;
+		line-height: 1.2;
+	}
+
+	.cronologia__detalle {
+		max-width: 38rem;
+		color: var(--tinta);
+		font-family: var(--font-body);
+		font-size: 0.9375rem;
+		line-height: 1.55;
+	}
+
+	.cronologia__mas {
+		margin-top: 0.75rem;
+	}
+
+	.cronologia__mas summary {
+		cursor: pointer;
+		color: var(--azul-medio);
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+	}
+
+	.cronologia__mas .cronologia__lista {
+		margin-top: 1rem;
+	}
+
+	.sobre-cv {
+		padding-top: 2.5rem;
+	}
+
+	@media (min-width: 64rem) {
+		.sobre-presentacion {
+			grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+			gap: 3rem;
+			align-items: center;
+		}
+	}
+</style>

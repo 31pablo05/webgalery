@@ -1,4 +1,6 @@
 // @ts-check
+import { rm } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
@@ -16,7 +18,18 @@ function sitio() {
 // https://astro.build/config
 export default defineConfig({
   site: sitio(),
-  integrations: [react(), sitemap()],
+  integrations: [
+    react(),
+    sitemap(),
+    {
+      name: 'sin-originales',
+      hooks: {
+        'astro:build:done': async ({ dir }) => {
+          await rm(fileURLToPath(new URL('demo/celia-originales', dir)), { recursive: true, force: true })
+        },
+      },
+    },
+  ],
   vite: {
     plugins: [tailwindcss()]
   }

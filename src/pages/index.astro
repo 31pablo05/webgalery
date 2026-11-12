@@ -36,6 +36,17 @@ const nombre = artista?.nombre || ''
 const titulo = nombre ? `${nombre} — ${artista?.subtitulo || 'Artista visual'}` : 'Inicio'
 const imagenOg = diapositivas[0]?.imagen || (imagenDisponible(artista?.retrato) ? artista.retrato : null)
 const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : undefined
+const mismos = [configuracion?.instagram, configuracion?.vimeo, configuracion?.youtube].filter(Boolean)
+const datos = nombre
+	? {
+			'@context': 'https://schema.org',
+			'@type': 'Person',
+			name: nombre,
+			jobTitle: 'Artista visual',
+			url: new URL('/', Astro.site ?? Astro.url).href,
+			...(mismos.length ? { sameAs: mismos } : {}),
+		}
+	: null
 ---
 
 <Layout
@@ -51,6 +62,7 @@ const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : unde
 	vimeo={configuracion?.vimeo}
 	youtube={configuracion?.youtube}
 	heroAzul={diapositivas.length > 0}
+	datos={datos}
 >
 	<Hero diapositivas={diapositivas} />
 	<FraseInicio frase={frase} />
@@ -69,5 +81,11 @@ const ogImage = imagenOg ? urlFor(imagenOg).width(1200).height(630).url() : unde
 		papel={papel}
 	/>
 	<SobreArtista retrato={artista?.retrato} bio={artista?.bioCorta || ''} nombre={nombre} />
-	<ContactoInicio clave={clave} whatsapp={configuracion?.whatsapp} />
+	<ContactoInicio
+		clave={clave}
+		whatsapp={configuracion?.whatsapp}
+		email={configuracion?.email}
+		instagram={configuracion?.instagram}
+		vimeo={configuracion?.vimeo}
+	/>
 </Layout>
