@@ -8,6 +8,10 @@ const OBRAS = '/obras'
 export const rutas = {
 	inicio: '/',
 	obras: OBRAS,
+	// Cuadros agrupa las series de pintura. La página ya existe en /series.
+	cuadros: '/series',
+	// Ilustraciones es la disciplina de obra sobre papel. La página ya existe.
+	ilustraciones: `${OBRAS}/obras-sobre-papel`,
 	audiovisual: '/audiovisual',
 	sobreMi: '/sobre-mi',
 	contacto: '/contacto',

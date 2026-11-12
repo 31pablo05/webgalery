@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
-import { fetchDisciplinas, fetchPie } from '../lib/sanity.js';
+import { fetchPie } from '../lib/sanity.js';
 
 const {
   title = '',
@@ -21,8 +21,6 @@ const {
   heroAzul = false,
 } = Astro.props;
 const jsonLd = datos ? JSON.stringify(datos).replace(/</g, '\\u003c') : ''
-// Las disciplinas arman el desplegable "Obra" del menú en todas las páginas.
-const disciplinas = (await fetchDisciplinas()).filter((disciplina) => disciplina.mostrarEnMenu);
 const pie = await fetchPie();
 const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 const texto = String(description || '').replace(/\s+/g, ' ').trim();
@@ -64,7 +62,7 @@ const indexar = ['true', '1', 'si', 'sí'].includes(
     </script>
   </head>
   <body>
-    <Header disciplinas={disciplinas} instagram={pie.instagram || instagram} vimeo={pie.vimeo || vimeo} heroAzul={heroAzul} />
+    <Header instagram={pie.instagram || instagram} vimeo={pie.vimeo || vimeo} heroAzul={heroAzul} />
     <main>
       <slot />
     </main>
