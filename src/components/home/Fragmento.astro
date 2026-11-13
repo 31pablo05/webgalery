@@ -1,0 +1,133 @@
+---
+import { medidasImagen, urlFor } from '../../lib/sanity.js'
+
+/*
+	Fragmento de obra: un acercamiento real a la superficie de un cuadro, a todo el ancho.
+	La obra no se tiñe, no se deforma y no lleva texto encima: el epígrafe va debajo.
+	Al entrar en pantalla, el recorte se abre y la imagen se aleja apenas (como un zoom que se asienta).
+
+	fragmento: salida de fetchFragmentos()[ubicacion] → { id, obra, imagen }.
+*/
+const { fragmento = null, pegado = false } = Astro.props
+
+const ANCHOS = [800, 1200, 1600, 2400]
+let fuente = null
+if (fragmento?.imagen) {
+	const { ancho } = medidasImagen(fragmento.imagen)
+	const anchos = [...new Set(ANCHOS.map((valor) => Math.min(valor, ancho || valor)))]
+	const lista = anchos.map((valor) => ({ valor, url: urlFor(fragmento.imagen).width(valor).url() }))
+	const { x = 0.5, y = 0.5 } = fragmento.imagen.hotspot || {}
+	fuente = {
+		src: lista[lista.length - 1].url,
+		srcset: lista.map(({ valor, url }) => `${url} ${valor}w`).join(', '),
+		ancho,
+		alto: medidasImagen(fragmento.imagen).alto,
+		posicion: `${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%`,
+		alt: fragmento.imagen.alt || 'Detalle de una obra de Celia Gómez Perea.',
+	}
+}
+const epigrafe = fragmento?.obra ? `Detalle · ${fragmento.obra}` : 'Detalle'
+---
+
+{
+	fuente && (
+		<figure class:list={['fragmento', pegado && 'fragmento--pegado']}>
+			<div class="fragmento__marco">
+				<img
+					class="fragmento__img"
+					src={fuente.src}
+					srcset={fuente.srcset}
+					sizes="100vw"
+					alt={fuente.alt}
+					width={fuente.ancho}
+					height={fuente.alto}
+					loading="lazy"
+					decoding="async"
+					style={`--posicion: ${fuente.posicion}`}
+				/>
+			</div>
+			<figcaption class="fragmento__epigrafe contenedor">
+				<span class="fragmento__linea" aria-hidden="true" />
+				<span class="label">{epigrafe}</span>
+			</figcaption>
+		</figure>
+	)
+}
+
+<style>
+	.fragmento {
+		margin: var(--bloque) 0 0;
+	}
+
+	.fragmento--pegado {
+		margin-top: 0;
+	}
+
+	.fragmento__marco {
+		position: relative;
+		height: clamp(15rem, 38vw, 34rem);
+		overflow: hidden;
+		background-color: var(--marfil);
+	}
+
+	.fragmento__img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: var(--posicion, 50% 50%);
+	}
+
+	.fragmento__epigrafe {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.85rem;
+		margin-top: 0.9rem;
+	}
+
+	.fragmento__linea {
+		width: 2.5rem;
+		height: 1px;
+		background-color: var(--dorado);
+	}
+
+	/*
+		Al entrar en pantalla: el recorte se abre desde los costados y la imagen pasa de 112 % a 100 %.
+		Solo en navegadores con animaciones ligadas al scroll; en el resto se ve fija, sin efecto.
+	*/
+	@supports (animation-timeline: view()) {
+		@media (prefers-reduced-motion: no-preference) {
+			.fragmento__marco {
+				animation: fragmento-abrir linear both;
+				animation-timeline: view();
+				animation-range: entry 0% cover 45%;
+			}
+
+			.fragmento__img {
+				animation: fragmento-asentar linear both;
+				animation-timeline: view();
+				animation-range: entry 0% exit 100%;
+			}
+		}
+	}
+
+	@keyframes fragmento-abrir {
+		from {
+			clip-path: inset(0 9% 0 9%);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+
+	@keyframes fragmento-asentar {
+		from {
+			transform: scale(1.12);
+		}
+		to {
+			transform: scale(1);
+		}
+	}
+</style>

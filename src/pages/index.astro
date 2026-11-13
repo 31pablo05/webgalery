@@ -7,9 +7,11 @@ import SeriesDestacadas from '../components/home/SeriesDestacadas.astro'
 import AudiovisualPapel from '../components/home/AudiovisualPapel.astro'
 import SobreArtista from '../components/home/SobreArtista.astro'
 import ContactoInicio from '../components/home/ContactoInicio.astro'
+import Fragmento from '../components/home/Fragmento.astro'
 import {
 	fetchDiapositivasHero,
 	fetchDisciplinas,
+	fetchFragmentos,
 	fetchFraseInicio,
 	fetchHeroInicio,
 	fetchInicio,
@@ -20,7 +22,7 @@ import {
 	urlFor,
 } from '../lib/sanity.js'
 
-const [{ artista, configuracion }, diapositivas, frase, principal, disciplinas, video, textoHero] = await Promise.all([
+const [{ artista, configuracion }, diapositivas, frase, principal, disciplinas, video, textoHero, fragmentos] = await Promise.all([
 	fetchInicio(),
 	fetchDiapositivasHero(),
 	fetchFraseInicio(),
@@ -28,6 +30,7 @@ const [{ artista, configuracion }, diapositivas, frase, principal, disciplinas, 
 	fetchDisciplinas(),
 	fetchVideoReciente(),
 	fetchHeroInicio(),
+	fetchFragmentos(),
 ])
 // La serie principal ya tiene su banda: no se repite entre las destacadas (ninguna foto se repite en el Inicio).
 const series = await fetchSeriesDestacadas({ excluir: principal?.slug })
@@ -68,6 +71,7 @@ const datos = nombre
 >
 	<Hero diapositivas={diapositivas} texto={textoHero} />
 	<FraseInicio frase={frase} />
+	<Fragmento fragmento={fragmentos['inicio-1']} pegado />
 	<SerieDestacada serie={principal} />
 	<SeriesDestacadas series={series} />
 	<AudiovisualPapel
@@ -83,6 +87,7 @@ const datos = nombre
 		papel={papel}
 	/>
 	<SobreArtista retrato={artista?.retrato} bio={artista?.bioCorta || ''} nombre={nombre} />
+	<Fragmento fragmento={fragmentos['inicio-2']} />
 	<ContactoInicio
 		clave={clave}
 		whatsapp={configuracion?.whatsapp}

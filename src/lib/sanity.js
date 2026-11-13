@@ -9,7 +9,7 @@ import {resolverEnlace, rutaDisciplina, rutaSerie} from './rutas.js'
 const API_VERSION = '2026-11-05'
 const COLOR_SUPERFICIE = '#f2e9e0'
 // Anchos de las variantes generadas para las imágenes de demo (archivo-400.webp, archivo-800.webp...).
-const ANCHOS_DEMO = [400, 800, 1200]
+const ANCHOS_DEMO = [400, 800, 1200, 1600]
 
 function leerVite(nombre) {
   try {
@@ -91,20 +91,23 @@ function archivoDemo(archivo) {
 }
 
 // Devuelve la variante más chica que cubre el ancho pedido y, si se recorta, también el alto
-// (una imagen horizontal recortada en vertical necesita más ancho). Si no hay, el archivo completo.
+// (una imagen horizontal recortada en vertical necesita más ancho). Si ninguna variante alcanza,
+// el archivo completo (que es más grande que la variante mayor): así las bandas a todo el ancho no se ven blandas.
 function varianteDemo(datos, anchoPedido, altoPedido = 0) {
   const necesario = Math.max(anchoPedido, altoPedido > 0 ? (altoPedido * datos.ancho) / datos.alto : 0)
   if (necesario > 0) {
     let cercana = ''
+    let anchoCercana = 0
     for (const ancho of ANCHOS_DEMO) {
       if (datos.ancho > 0 && ancho > datos.ancho * 1.35) continue
       const webp = archivoDemo(`${datos.nombre}-${ancho}.webp`)
       const variante = webp || archivoDemo(`${datos.nombre}-${ancho}.${datos.extension}`)
       if (!variante) continue
       cercana = variante
+      anchoCercana = ancho
       if (ancho >= necesario) return variante
     }
-    if (cercana) return cercana
+    if (cercana && !(datos.ancho > anchoCercana)) return cercana
   }
   const webp = datos.extension === 'webp' ? '' : archivoDemo(`${datos.nombre}.webp`)
   return webp || archivoDemo(datos.archivo)
@@ -1535,4 +1538,28 @@ export async function fetchVideoReciente() {
       miniatura ${imagen}
     }`)
   return video ? prepararProyecto(video) : null
+}
+
+// Fragmentos de obra (acercamientos a la superficie de un cuadro) por ubicación: { 'inicio-1': {...} }.
+// En Sanity se cargan en "La artista" → "Fragmentos". Solo los que tienen imagen.
+function prepararFragmento(fragmento) {
+  return {
+    id: fragmento._id || fragmento._key || '',
+    ubicacion: String(fragmento.ubicacion || '').trim(),
+    obra: String(fragmento.obra || '').trim(),
+    imagen: fragmento.imagen,
+  }
+}
+
+export async function fetchFragmentos() {
+  const lista = enDemo
+    ? demo.fragmentos || []
+    : (await client.fetch(`*[_id == "artista"][0].fragmentos[]{ _key, ubicacion, obra, imagen ${imagen} }`)) || []
+  const porUbicacion = {}
+  for (const fragmento of lista) {
+    if (!imagenDisponible(fragmento?.imagen)) continue
+    const preparado = prepararFragmento(fragmento)
+    if (preparado.ubicacion && !porUbicacion[preparado.ubicacion]) porUbicacion[preparado.ubicacion] = preparado
+  }
+  return porUbicacion
 }

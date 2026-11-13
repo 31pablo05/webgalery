@@ -233,8 +233,8 @@ export const obras = [
 const imagenDe = (slug) => obras.find((item) => item.slug === slug)?.imagenPrincipal || null
 // «Una vez vi blanco» y «En qué sala te esperas» son los nombres confirmados.
 // El CV anota más de un año para cada una (tesis y muestras): el período queda vacío hasta que la artista lo precise.
-// Ninguna tiene portada ni cuadros asignados: no se vincula una foto de otra obra.
-// Las páginas viven en /series/[slug]. Ninguna serie tiene portada ni cuadros vinculados.
+// Portadas: fotos de cuadros de cada serie confirmadas por Pablo (13/11). Los cuadros se vinculan
+// cuando lleguen las fotos ordenadas por serie. Las páginas viven en /series/[slug].
 export const series = [
 	{
 		_id: 'una-vez-vi-blanco',
@@ -242,7 +242,15 @@ export const series = [
 		nombre: 'Una vez vi blanco',
 		slug: 'una-vez-vi-blanco',
 		disciplina: '',
-		portada: null,
+		portada: {
+			...foto(
+				'celia-una-vez-vi-blanco.webp',
+				1040,
+				1070,
+				'Cuadro de la serie Una vez vi blanco: dibujo en línea negra sobre fondo blanco con un plano de azules a la izquierda.',
+			),
+			hotspot: { x: 0.45, y: 0.5, width: 1, height: 1 },
+		},
 		descripcion: [],
 		anio: '',
 		tecnicaGeneral: '',
@@ -257,7 +265,15 @@ export const series = [
 		nombre: 'En qué sala te esperas',
 		slug: 'en-que-sala-te-esperas',
 		disciplina: '',
-		portada: null,
+		portada: {
+			...foto(
+				'celia-en-que-sala.webp',
+				717,
+				1280,
+				'Celia Gómez Perea junto a un cuadro de la serie En qué sala te esperas: tinta negra sobre fondo blanco con una franja negra inferior.',
+			),
+			hotspot: { x: 0.52, y: 0.42, width: 1, height: 1 },
+		},
 		descripcion: [],
 		anio: '',
 		tecnicaGeneral: '',
@@ -266,6 +282,19 @@ export const series = [
 		principalInicio: false,
 		publicada: true,
 	},
+]
+
+// Fragmentos: acercamientos reales a la superficie de cuadros de Celia, con el borde de la tela.
+// No se tiñen ni se deforman y nunca llevan texto encima: el epígrafe va debajo.
+// obra: nombre de la serie o del cuadro si está confirmado; si no, queda vacío y dice "Detalle".
+// ubicacion: dónde aparece (inicio-1, inicio-2, …). Los que no tienen ubicación quedan disponibles.
+export const fragmentos = [
+	{ _id: 'f1-detalle-azul', ubicacion: 'inicio-1', obra: '', imagen: { ...foto('fragmentos/f1-detalle-azul.webp', 2400, 1029, 'Detalle de un cuadro de Celia Gómez Perea: trazos negros y azules que se curvan sobre la tela clara.'), hotspot: { x: 0.45, y: 0.5, width: 1, height: 1 } } },
+	{ _id: 'f2-borde-azul', ubicacion: 'inicio-2', obra: '', imagen: { ...foto('fragmentos/f2-borde-azul.webp', 1470, 640, 'Detalle del borde superior de un cuadro: un manto azul oscuro y líneas negras en espiral.'), hotspot: { x: 0.5, y: 0.45, width: 1, height: 1 } } },
+	{ _id: 'f3-vez-vi-blanco', ubicacion: '', obra: 'Una vez vi blanco', imagen: foto('fragmentos/f3-vez-vi-blanco.webp', 900, 710, 'Detalle de un cuadro de la serie Una vez vi blanco: veladuras azules y un círculo trazado en negro.') },
+	{ _id: 'f4-negro-franja', ubicacion: '', obra: '', imagen: foto('fragmentos/f4-negro-franja.webp', 710, 590, 'Detalle de un cuadro negro: una figura trazada en línea fina y una franja vertical naranja y turquesa.') },
+	{ _id: 'f5-rostro-borde', ubicacion: '', obra: '', imagen: foto('fragmentos/f5-rostro-borde.webp', 600, 570, 'Detalle del borde izquierdo de un cuadro: bloques negros y rosados y un rostro dibujado en línea.') },
+	{ _id: 'f6-chorreado', ubicacion: '', obra: '', imagen: foto('fragmentos/f6-chorreado.webp', 810, 590, 'Detalle del borde superior de un cuadro: chorreados de tinta negra sobre fondo blanco.') },
 ]
 
 // Diapositivas del hero: solo el fondo (foto o video). El texto es fijo y sale de artista.heroInicio.

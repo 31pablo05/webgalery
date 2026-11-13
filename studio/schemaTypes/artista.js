@@ -157,6 +157,44 @@ export const artista = defineType({
       ],
     }),
     defineField({
+      name: 'fragmentos',
+      title: 'Fragmentos de obra',
+      type: 'array',
+      group: 'inicio',
+      description:
+        'Acercamientos reales a la superficie de un cuadro, con el borde de la tela. Se muestran a todo el ancho, sin texto encima ni filtros. Horizontales, de 2000 px de ancho o más.',
+      of: [
+        {
+          type: 'object',
+          name: 'fragmento',
+          fields: [
+            campoImagen({name: 'imagen', title: 'Foto del detalle'}),
+            defineField({
+              name: 'obra',
+              title: 'Obra o serie',
+              type: 'string',
+              description: 'Opcional. Aparece debajo como "Detalle · nombre". Si queda vacío, dice "Detalle".',
+            }),
+            defineField({
+              name: 'ubicacion',
+              title: 'Dónde aparece',
+              type: 'string',
+              options: {
+                list: [
+                  {title: 'Inicio · después de la frase', value: 'inicio-1'},
+                  {title: 'Inicio · antes de contacto', value: 'inicio-2'},
+                ],
+              },
+            }),
+          ],
+          preview: {
+            select: {title: 'obra', subtitle: 'ubicacion', media: 'imagen'},
+            prepare: ({title, subtitle, media}) => ({title: title || 'Detalle', subtitle: subtitle || 'Sin ubicación', media}),
+          },
+        },
+      ],
+    }),
+    defineField({
       name: 'heroAudiovisual',
       title: 'Hero de audiovisual',
       type: 'object',
