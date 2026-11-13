@@ -1,47 +1,46 @@
 import {defineField, defineType} from 'sanity'
 import {campoImagen} from './imagen.js'
 
+// Una pantalla del carrusel del inicio: solo el fondo (foto o video).
+// El texto del hero es fijo y se edita en "La artista" → "Hero del inicio".
 export const diapositivaHero = defineType({
   name: 'diapositivaHero',
   title: 'Diapositiva del inicio',
   type: 'document',
   fields: [
+    defineField({
+      name: 'tipo',
+      title: 'Tipo',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Fotografía', value: 'imagen'},
+          {title: 'Video corto', value: 'video'},
+        ],
+        layout: 'radio',
+        direction: 'horizontal',
+      },
+      initialValue: 'imagen',
+    }),
     campoImagen({
       name: 'imagen',
-      title: 'Fotografía',
+      title: 'Fotografía (o portada del video)',
       description:
-        'La foto de esta pantalla. Si es chica o horizontal, el sitio la muestra entera y no la estira. Sin foto, la diapositiva no se publica en el inicio.',
+        'Horizontal, de 1920 × 1080 px o más. Si es un video, subí acá su primer fotograma: se ve mientras el video carga. Sin imagen, la diapositiva no se publica.',
     }),
     defineField({
-      name: 'etiqueta',
-      title: 'Etiqueta',
+      name: 'video',
+      title: 'Video',
+      type: 'file',
+      options: {accept: 'video/mp4'},
+      description: 'MP4 horizontal de 1920 × 1080, de 5 a 10 segundos, sin audio y de menos de 4 MB.',
+      hidden: ({parent}) => parent?.tipo !== 'video',
+    }),
+    defineField({
+      name: 'epigrafe',
+      title: 'Epígrafe',
       type: 'string',
-      description: 'Opcional. Una línea corta encima del título.',
-    }),
-    defineField({
-      name: 'titulo',
-      title: 'Título',
-      type: 'string',
-      description: 'El título grande de la pantalla.',
-    }),
-    defineField({
-      name: 'subtitulo',
-      title: 'Subtítulo',
-      type: 'text',
-      rows: 2,
-      description: 'Una frase breve debajo del título.',
-    }),
-    defineField({
-      name: 'textoBoton',
-      title: 'Texto del botón',
-      type: 'string',
-      description: 'El texto del botón. Ejemplo: Explorar obra.',
-    }),
-    defineField({
-      name: 'enlace',
-      title: 'Enlace',
-      type: 'string',
-      description: 'Una ruta del sitio, como /obras, o un link completo que empiece con https://.',
+      description: 'Opcional. Una línea chica abajo a la izquierda. Ejemplo: BUCEAR · Instalación, MAV Trelew.',
     }),
     defineField({
       name: 'orden',
@@ -67,12 +66,14 @@ export const diapositivaHero = defineType({
     },
   ],
   preview: {
-    select: {title: 'titulo', media: 'imagen', activa: 'activa', orden: 'orden'},
-    prepare({title, media, activa, orden}) {
+    select: {tipo: 'tipo', epigrafe: 'epigrafe', media: 'imagen', activa: 'activa', orden: 'orden'},
+    prepare({tipo, epigrafe, media, activa, orden}) {
       return {
-        title: title || 'Sin título',
+        title: epigrafe || (tipo === 'video' ? 'Video' : 'Fotografía'),
         media,
-        subtitle: [activa ? 'Activa' : 'Inactiva', orden != null ? `Orden ${orden}` : ''].filter(Boolean).join(' · '),
+        subtitle: [tipo === 'video' ? 'Video' : 'Foto', activa ? 'Activa' : 'Inactiva', orden != null ? `Orden ${orden}` : '']
+          .filter(Boolean)
+          .join(' · '),
       }
     },
   },

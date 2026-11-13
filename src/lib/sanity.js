@@ -1438,44 +1438,66 @@ export async function fetchTrayectoria() {
   }
 }
 
-function prepararDiapositiva(diapositiva, disciplinas) {
+// Un video de demo existe si el MP4 está en public/. En Sanity, si el archivo tiene URL.
+function videoDisponible(url) {
+  const ruta = String(url || '').trim()
+  if (!ruta) return ''
+  if (!enDemo) return ruta
+  return existsSync(join(process.cwd(), 'public', decodeURI(ruta).replace(/^\/+/, ''))) ? ruta : ''
+}
+
+// Diapositiva del hero: solo el fondo. Un video sin archivo se muestra como su póster (foto).
+function prepararDiapositiva(diapositiva) {
+  const video = diapositiva.tipo === 'video' ? videoDisponible(diapositiva.video) : ''
   return {
     id: diapositiva._id,
-    etiqueta: String(diapositiva.etiqueta || '').trim(),
-    titulo: String(diapositiva.titulo || '').trim(),
-    subtitulo: String(diapositiva.subtitulo || '').trim(),
-    textoBoton: String(diapositiva.textoBoton || '').trim(),
-    enlace: resolverEnlace(diapositiva.enlace, disciplinas),
+    tipo: video ? 'video' : 'imagen',
+    video,
+    epigrafe: String(diapositiva.epigrafe || '').trim(),
     imagen: diapositiva.imagen,
   }
 }
 
 export async function fetchDiapositivasHero() {
   if (enDemo) {
-    const disciplinas = (demo.disciplinas || []).map((item) => item.slug)
     return [...(demo.diapositivasHero || [])]
       .filter((diapositiva) => diapositiva.activa !== false && imagenDisponible(diapositiva.imagen))
       .sort(porOrden)
-      .map((diapositiva) => prepararDiapositiva(diapositiva, disciplinas))
+      .map(prepararDiapositiva)
   }
-  const [diapositivas, disciplinas] = await Promise.all([
-    client.fetch(
-      `*[_type == "diapositivaHero" && coalesce(activa, true) == true && !(_id in path("drafts.**"))]
-        | order(coalesce(orden, 999999) asc) {
-          _id,
-          etiqueta,
-          titulo,
-          subtitulo,
-          textoBoton,
-          enlace,
-          imagen ${imagen}
-        }`,
-    ),
-    client.fetch(`*[_type == "disciplina" && !(_id in path("drafts.**"))].slug.current`),
-  ])
-  return (diapositivas || [])
-    .filter((diapositiva) => imagenDisponible(diapositiva.imagen))
-    .map((diapositiva) => prepararDiapositiva(diapositiva, disciplinas || []))
+  const diapositivas = await client.fetch(
+    `*[_type == "diapositivaHero" && coalesce(activa, true) == true && !(_id in path("drafts.**"))]
+      | order(coalesce(orden, 999999) asc) {
+        _id,
+        tipo,
+        epigrafe,
+        "video": video.asset->url,
+        imagen ${imagen}
+      }`,
+  )
+  return (diapositivas || []).filter((diapositiva) => imagenDisponible(diapositiva.imagen)).map(prepararDiapositiva)
+}
+
+// Texto fijo del hero del Inicio (no cambia con las diapositivas).
+function prepararHeroInicio(hero) {
+  const boton = (dato) => {
+    const texto = String(dato?.texto || '').trim()
+    const enlace = resolverEnlace(dato?.enlace)
+    return texto && enlace ? {texto, enlace} : null
+  }
+  return {
+    etiqueta: String(hero?.etiqueta || '').trim(),
+    titulo: String(hero?.titulo || '').trim(),
+    bajada: String(hero?.bajada || '').trim(),
+    botonPrincipal: boton(hero?.botonPrincipal),
+    botonSecundario: boton(hero?.botonSecundario),
+  }
+}
+
+export async function fetchHeroInicio() {
+  if (enDemo) return prepararHeroInicio(demo.artista?.heroInicio)
+  const artista = await client.fetch(`*[_id == "artista"][0]{ heroInicio }`)
+  return prepararHeroInicio(artista?.heroInicio)
 }
 
 export async function fetchFraseInicio() {

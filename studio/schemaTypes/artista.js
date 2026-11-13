@@ -127,6 +127,36 @@ export const artista = defineType({
       description: 'La frase breve entre el hero y la serie destacada. Es un texto editable, corto.',
     }),
     defineField({
+      name: 'heroInicio',
+      title: 'Hero del inicio',
+      type: 'object',
+      group: 'inicio',
+      description: 'El texto que se lee sobre el carrusel del inicio. No cambia con las diapositivas.',
+      fields: [
+        defineField({name: 'etiqueta', title: 'Etiqueta', type: 'string', description: 'Línea chica arriba. Ejemplo: Artista visual · Patagonia argentina.'}),
+        defineField({name: 'titulo', title: 'Título', type: 'string', description: 'El texto grande. Ejemplo: su nombre.'}),
+        defineField({name: 'bajada', title: 'Bajada', type: 'text', rows: 2, description: 'Una o dos líneas debajo del título.'}),
+        defineField({
+          name: 'botonPrincipal',
+          title: 'Botón principal',
+          type: 'object',
+          fields: [
+            defineField({name: 'texto', title: 'Texto', type: 'string'}),
+            defineField({name: 'enlace', title: 'Enlace', type: 'string', description: 'Ruta del sitio, como /series.'}),
+          ],
+        }),
+        defineField({
+          name: 'botonSecundario',
+          title: 'Botón secundario',
+          type: 'object',
+          fields: [
+            defineField({name: 'texto', title: 'Texto', type: 'string'}),
+            defineField({name: 'enlace', title: 'Enlace', type: 'string', description: 'Ruta del sitio, como /contacto.'}),
+          ],
+        }),
+      ],
+    }),
+    defineField({
       name: 'heroAudiovisual',
       title: 'Hero de audiovisual',
       type: 'object',

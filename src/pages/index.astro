@@ -11,6 +11,7 @@ import {
 	fetchDiapositivasHero,
 	fetchDisciplinas,
 	fetchFraseInicio,
+	fetchHeroInicio,
 	fetchInicio,
 	fetchSeriePrincipal,
 	fetchSeriesDestacadas,
@@ -19,13 +20,14 @@ import {
 	urlFor,
 } from '../lib/sanity.js'
 
-const [{ artista, configuracion }, diapositivas, frase, principal, disciplinas, video] = await Promise.all([
+const [{ artista, configuracion }, diapositivas, frase, principal, disciplinas, video, textoHero] = await Promise.all([
 	fetchInicio(),
 	fetchDiapositivasHero(),
 	fetchFraseInicio(),
 	fetchSeriePrincipal(),
 	fetchDisciplinas(),
 	fetchVideoReciente(),
+	fetchHeroInicio(),
 ])
 // La serie principal ya tiene su banda: no se repite entre las destacadas (ninguna foto se repite en el Inicio).
 const series = await fetchSeriesDestacadas({ excluir: principal?.slug })
@@ -64,7 +66,7 @@ const datos = nombre
 	heroAzul={diapositivas.length > 0}
 	datos={datos}
 >
-	<Hero diapositivas={diapositivas} />
+	<Hero diapositivas={diapositivas} texto={textoHero} />
 	<FraseInicio frase={frase} />
 	<SerieDestacada serie={principal} />
 	<SeriesDestacadas series={series} />

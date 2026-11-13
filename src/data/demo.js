@@ -268,57 +268,71 @@ export const series = [
 	},
 ]
 
-// Diapositivas del hero: textos de demostración de diseño, editables (en Sanity, "Inicio").
-// La 2 y la 3 quedan inactivas: no hay foto confirmada para una segunda diapositiva.
+// Diapositivas del hero: solo el fondo (foto o video). El texto es fijo y sale de artista.heroInicio.
+// orden define la secuencia; activa: false la saca sin borrarla. epigrafe: solo con datos confirmados.
+// Los videos: MP4 sin audio en public/demo/hero/, con su póster (primer fotograma) como imagen.
 export const diapositivasHero = [
 	{
-		_id: 'diapositiva-1',
+		_id: 'hero-celia-03',
 		_type: 'diapositivaHero',
-		etiqueta: '',
-		titulo: 'Pintura, cuerpo y territorio',
-		subtitulo: 'Exploraciones visuales entre el gesto, la memoria y el espacio.',
-		textoBoton: 'Explorar obra',
-		enlace: '/obras',
+		tipo: 'imagen',
 		orden: 10,
 		activa: true,
+		epigrafe: '',
 		imagen: {
-			...foto(
-				'celia-bucear.PNG',
-				608,
-				340,
-				'Celia Gómez Perea dentro de la sala intervenida de BUCEAR: Del punto… a la línea, con paredes y piso cubiertos de trazos de tinta negra.',
-			),
-			hotspot: { x: 0.37, y: 0.55, width: 1, height: 1 },
+			...foto('hero/hero-celia-03-desktop.webp', 1672, 941, 'Celia Gómez Perea sentada en el piso del taller, junto a su caja de materiales.'),
+			hotspot: { x: 0.62, y: 0.45, width: 1, height: 1 },
 		},
 	},
 	{
-		_id: 'diapositiva-2',
+		_id: 'hero-celia-pintando',
 		_type: 'diapositivaHero',
-		etiqueta: 'Serie destacada',
-		titulo: 'Una vez vi blanco',
-		subtitulo: '',
-		textoBoton: 'Ver serie',
-		enlace: '/series/una-vez-vi-blanco',
+		tipo: 'video',
 		orden: 20,
-		activa: false,
-		imagen: imagenDe('obra-06'),
+		activa: true,
+		epigrafe: 'Proceso de trabajo',
+		video: '/demo/hero/hero-celia-pintando-desktop.mp4',
+		imagen: {
+			...foto('hero/hero-celia-pintando-poster.webp', 1920, 1080, 'Celia Gómez Perea pintando trazos de tinta negra sobre una pared blanca.'),
+			hotspot: { x: 0.6, y: 0.45, width: 1, height: 1 },
+		},
 	},
 	{
-		_id: 'diapositiva-3',
+		_id: 'hero-celia-02',
 		_type: 'diapositivaHero',
-		etiqueta: 'Audiovisual',
-		titulo: 'Del punto a la línea, un océano',
-		subtitulo: '',
-		textoBoton: 'Ver audiovisual',
-		enlace: '/audiovisual',
+		tipo: 'imagen',
 		orden: 30,
-		activa: false,
-		imagen: foto(
-			'/demo/celia-bucear.PNG',
-			1600,
-			686,
-			'Registro de proceso: un hilo de pintura negra cae sobre el piso cubierto de trazos.',
-		),
+		activa: true,
+		epigrafe: '',
+		imagen: {
+			...foto('hero/hero-celia-02-desktop.webp', 1920, 1080, 'Obra de Celia Gómez Perea: dibujo en líneas celestes y rojas sobre fondo oscuro.'),
+			hotspot: { x: 0.62, y: 0.4, width: 1, height: 1 },
+		},
+	},
+	{
+		_id: 'hero-celia-video-02',
+		_type: 'diapositivaHero',
+		tipo: 'video',
+		orden: 40,
+		activa: true,
+		epigrafe: '',
+		video: '/demo/hero/hero-celia-video-02-desktop.mp4',
+		imagen: {
+			...foto('hero/hero-celia-video-02-poster.webp', 480, 480, 'Tintas de colores que se expanden sobre papel claro.'),
+			hotspot: { x: 0.5, y: 0.45, width: 1, height: 1 },
+		},
+	},
+	{
+		_id: 'hero-celia-01',
+		_type: 'diapositivaHero',
+		tipo: 'imagen',
+		orden: 50,
+		activa: true,
+		epigrafe: '',
+		imagen: {
+			...foto('hero/hero-celia-01-desktop.webp', 1600, 1200, 'Dibujo en tinta de Celia Gómez Perea: un paisaje de construcciones y piedras trazado con línea fina.'),
+			hotspot: { x: 0.55, y: 0.45, width: 1, height: 1 },
+		},
 	},
 ]
 
@@ -377,6 +391,14 @@ export const artista = {
 			),
 			hotspot: { x: 0.37, y: 0.55, width: 1, height: 1 },
 		},
+	},
+	// Texto del hero del Inicio: no cambia con las diapositivas. Datos del CV (más de 20 años de trayectoria).
+	heroInicio: {
+		etiqueta: 'Artista visual · Patagonia argentina',
+		titulo: 'Celia Gómez Perea',
+		bajada: 'Más de veinte años de obra entre la pintura, el dibujo, la instalación y la performance.',
+		botonPrincipal: { texto: 'Ver cuadros', enlace: '/series' },
+		botonSecundario: { texto: 'Consultar por una obra', enlace: '/contacto' },
 	},
 	heroAudiovisual: {
 		bajada: 'Producción audiovisual de Celia Gómez Perea. Sus piezas se publican en Vimeo.',

@@ -1,21 +1,44 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import ObraPlaceholder from '../obras/ObraPlaceholder.jsx'
 
 /*
-	Carrusel del hero. Astro lo renderiza en el servidor (la primera diapositiva es el LCP y sale en el
-	HTML con prioridad alta); al hidratar, el island solo agrega la interacción.
-	diapositivas: [{ id, etiqueta, titulo, subtitulo, textoBoton, enlace, externo, imagen }]
-	imagen: { src, srcset, alt, ancho, alto, posicion, posicionMovil }
-	autoplay: desactivado por defecto. Si se activa, se pausa con hover, foco o pestaña oculta.
+	Fondo del hero: fotos y videos cortos a pantalla completa, con fundido cruzado.
+	El texto NO vive acá: lo renderiza Hero.astro y no cambia con las diapositivas.
+
+	diapositivas: [{ id, tipo: 'imagen' | 'video', video, epigrafe, imagen: { src, srcset, alt, posicion } }]
+
+	- Foto: queda DURACION_FOTO ms con un acercamiento lentísimo.
+	- Video: silenciado, sin controles; dura lo que dura el clip y al terminar pasa a la siguiente.
+	  Solo se reproduce el video de la diapositiva activa; al salir se pausa y vuelve al inicio.
+	  El archivo se pide recién cuando la diapositiva activa o la siguiente es esa (nunca al cargar la página).
+	- Se pausa con el botón, con el mouse o el foco sobre los controles y con la pestaña oculta.
+	- Con movimiento reducido o ahorro de datos: sin autoplay, sin zoom y sin videos (se ve su póster).
 */
 
-const INTERVALO = 7000
-const UMBRAL_DESLIZAR = 40
+const DURACION_FOTO = 6000
+const DURACION_VIDEO_MAX = 12000
 
-function Flecha() {
-	return (
-		<svg className="flecha" viewBox="0 0 22 10" aria-hidden="true" focusable="false">
-			<path d="M0 5h20.5M16.5 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+function usarPreferencias() {
+	const [reducido, setReducido] = useState(false)
+	const [ahorro, setAhorro] = useState(false)
+	useEffect(() => {
+		const consulta = window.matchMedia('(prefers-reduced-motion: reduce)')
+		const actualizar = () => setReducido(consulta.matches)
+		actualizar()
+		consulta.addEventListener('change', actualizar)
+		setAhorro(Boolean(navigator.connection?.saveData))
+		return () => consulta.removeEventListener('change', actualizar)
+	}, [])
+	return { reducido, ahorro }
+}
+
+function IconoPausa({ pausado }) {
+	return pausado ? (
+		<svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+			<path d="M3 1.5v9l7.5-4.5z" fill="currentColor" />
+		</svg>
+	) : (
+		<svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+			<path d="M3 1.5h2v9H3zM7 1.5h2v9H7z" fill="currentColor" />
 		</svg>
 	)
 }
@@ -23,97 +46,120 @@ function Flecha() {
 function Chevron({ sentido }) {
 	return (
 		<svg viewBox="0 0 14 28" aria-hidden="true" focusable="false">
-			<path d={sentido === 'anterior' ? 'M12 2 2 14l10 12' : 'M2 2l10 12L2 26'} fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+			<path
+				d={sentido === 'anterior' ? 'M12 2 2 14l10 12' : 'M2 2l10 12L2 26'}
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="1.1"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
 		</svg>
 	)
 }
 
-function Diapositiva({ diapositiva, indice, activa, total }) {
-	const { etiqueta, titulo, subtitulo, textoBoton, enlace, externo, imagen } = diapositiva
-	const [rota, setRota] = useState(false)
-	const primera = indice === 0
-	const Titulo = primera ? 'h1' : 'h2'
-	const conFoto = Boolean(imagen?.src) && !rota
-	return (
-		<div
-			className={activa ? 'hero__diapositiva is-activa' : 'hero__diapositiva'}
-			role={total > 1 ? 'group' : undefined}
-			aria-roledescription={total > 1 ? 'diapositiva' : undefined}
-			aria-label={total > 1 ? `${indice + 1} de ${total}` : undefined}
-			aria-hidden={activa ? undefined : 'true'}
-			inert={activa ? undefined : true}
-		>
-			<figure
-				className={imagen?.contenida ? 'hero__figura hero__figura--contenida' : 'hero__figura'}
-				style={imagen?.contenida ? { '--ancho-nativo': `${imagen.ancho}px` } : undefined}
-			>
-				{conFoto ? (
-					<img
-						src={imagen.src}
-						srcSet={imagen.srcset || undefined}
-						sizes="(min-width: 64rem) 72vw, 100vw"
-						alt={imagen.alt}
-						width={imagen.ancho}
-						height={imagen.alto}
-						loading={primera ? 'eager' : 'lazy'}
-						fetchPriority={primera ? 'high' : 'low'}
-						decoding={primera ? 'sync' : 'async'}
-						style={{ '--posicion': imagen.posicion, '--posicion-movil': imagen.posicionMovil }}
-						onError={() => setRota(true)}
-					/>
-				) : (
-					<ObraPlaceholder proporcion="horizontal" className="hero__pendiente" />
-				)}
-			</figure>
-			<div className="hero__texto contenedor">
-				<div className="hero__bloque">
-					{etiqueta && <p className="label label--acento hero__etiqueta">{etiqueta}</p>}
-					{titulo && <Titulo className="t-hero hero__titulo">{titulo}</Titulo>}
-					<span className="filete filete--largo hero__filete" aria-hidden="true" />
-					{subtitulo && <p className="hero__subtitulo">{subtitulo}</p>}
-					{textoBoton && enlace && (
-						<a
-							className="btn btn-contorno hero__boton"
-							href={enlace}
-							target={externo ? '_blank' : undefined}
-							rel={externo ? 'noopener noreferrer' : undefined}
-						>
-							{textoBoton}
-							<Flecha />
-						</a>
-					)}
-				</div>
-			</div>
-		</div>
-	)
-}
-
-export default function HeroCarrusel({ diapositivas = [], autoplay = false }) {
+export default function HeroCarrusel({ diapositivas = [] }) {
 	const total = diapositivas.length
 	const [actual, setActual] = useState(0)
-	const [pausado, setPausado] = useState(false)
-	const inicioToque = useRef(null)
+	const [pausaManual, setPausaManual] = useState(false)
+	const [pausaHover, setPausaHover] = useState(false)
+	const [oculto, setOculto] = useState(false)
+	const [videosFallidos, setVideosFallidos] = useState(() => new Set())
+	const [listo, setListo] = useState(false)
+	const { reducido, ahorro } = usarPreferencias()
+
+	const videos = useRef([])
+	const barras = useRef([])
+	const transcurrido = useRef(0)
+
+	const varias = total > 1
+	const sinMovimiento = reducido
+	const conVideos = listo && !reducido && !ahorro
+	const pausado = pausaManual || pausaHover || oculto || sinMovimiento || !varias
+
+	const actualDatos = diapositivas[actual]
+	const esVideoActivo = conVideos && actualDatos?.tipo === 'video' && !videosFallidos.has(actual)
 
 	const ir = useCallback(
 		(indice) => {
 			if (total < 2) return
+			transcurrido.current = 0
 			setActual(((indice % total) + total) % total)
 		},
 		[total],
 	)
 
-	// Autoplay opcional: nunca con movimiento reducido; se pausa con hover, foco o pestaña oculta.
+	// Después de hidratar: recién ahí se habilitan los videos (el HTML del servidor solo trae la primera foto).
 	useEffect(() => {
-		if (!autoplay || total < 2 || pausado) return undefined
-		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
-		const id = window.setInterval(() => {
-			if (!document.hidden) setActual((valor) => (valor + 1) % total)
-		}, INTERVALO)
-		return () => window.clearInterval(id)
-	}, [autoplay, total, pausado])
+		setListo(true)
+		const visibilidad = () => setOculto(document.hidden)
+		document.addEventListener('visibilitychange', visibilidad)
+		return () => document.removeEventListener('visibilitychange', visibilidad)
+	}, [])
+
+	// Videos: solo el activo se reproduce; los demás quedan pausados y al inicio.
+	useEffect(() => {
+		videos.current.forEach((video, indice) => {
+			if (!video) return
+			if (indice === actual && esVideoActivo) {
+				if (pausado && !sinMovimiento) {
+					video.pause()
+					return
+				}
+				if (sinMovimiento) return
+				const intento = video.play()
+				if (intento?.catch) {
+					intento.catch(() => {
+						// El navegador no dejó reproducir: se trata como foto (se ve el póster).
+						setVideosFallidos((previo) => new Set(previo).add(indice))
+					})
+				}
+			} else {
+				video.pause()
+				if (video.currentTime > 0) video.currentTime = 0
+			}
+		})
+	}, [actual, esVideoActivo, pausado, sinMovimiento])
+
+	// Reloj del carrusel: fotos por tiempo, videos por su duración. Pinta la barra de progreso.
+	useEffect(() => {
+		if (!varias) return undefined
+		let cuadro = 0
+		let anterior = performance.now()
+		const avanzar = (ahora) => {
+			const delta = ahora - anterior
+			anterior = ahora
+			let progreso = 0
+			if (esVideoActivo) {
+				const video = videos.current[actual]
+				const duracion = video?.duration && Number.isFinite(video.duration) ? video.duration * 1000 : 0
+				if (!pausado) transcurrido.current += delta
+				progreso = duracion ? (video.currentTime * 1000) / duracion : 0
+				// Red de seguridad: si el video se traba, no se queda para siempre.
+				if (!pausado && transcurrido.current > Math.max(duracion + 1500, DURACION_VIDEO_MAX)) {
+					ir(actual + 1)
+					return
+				}
+			} else {
+				if (!pausado) transcurrido.current += delta
+				progreso = transcurrido.current / DURACION_FOTO
+				if (progreso >= 1 && !pausado) {
+					ir(actual + 1)
+					return
+				}
+			}
+			const barra = barras.current[actual]
+			if (barra) barra.style.transform = `scaleX(${Math.min(1, Math.max(0, progreso))})`
+			cuadro = requestAnimationFrame(avanzar)
+		}
+		barras.current.forEach((barra, indice) => {
+			if (barra && indice !== actual) barra.style.transform = indice < actual ? 'scaleX(1)' : 'scaleX(0)'
+		})
+		cuadro = requestAnimationFrame(avanzar)
+		return () => cancelAnimationFrame(cuadro)
+	}, [actual, esVideoActivo, pausado, varias, ir])
 
 	if (!total) return null
-	const varias = total > 1
 
 	function tecla(event) {
 		if (!varias) return
@@ -126,66 +172,127 @@ export default function HeroCarrusel({ diapositivas = [], autoplay = false }) {
 		}
 	}
 
-	function tocar(event) {
-		const toque = event.touches[0]
-		inicioToque.current = toque ? { x: toque.clientX, y: toque.clientY } : null
-	}
-
-	function soltar(event) {
-		const inicio = inicioToque.current
-		const toque = event.changedTouches[0]
-		inicioToque.current = null
-		if (!varias || !inicio || !toque) return
-		const dx = toque.clientX - inicio.x
-		const dy = toque.clientY - inicio.y
-		if (Math.abs(dx) < UMBRAL_DESLIZAR || Math.abs(dx) < Math.abs(dy)) return
-		ir(actual + (dx < 0 ? 1 : -1))
-	}
+	// El archivo de video se pide cuando la diapositiva es la activa o la que sigue.
+	const siguiente = (actual + 1) % total
+	const epigrafe = actualDatos?.epigrafe || ''
 
 	return (
-		<div
-			className="hero__carrusel"
-			role={varias ? 'region' : undefined}
-			aria-roledescription={varias ? 'carrusel' : undefined}
-			aria-label={varias ? 'Destacados' : undefined}
-			tabIndex={varias ? 0 : undefined}
-			onKeyDown={tecla}
-			onTouchStart={tocar}
-			onTouchEnd={soltar}
-			onMouseEnter={() => setPausado(true)}
-			onMouseLeave={() => setPausado(false)}
-			onFocus={() => setPausado(true)}
-			onBlur={(event) => {
-				if (!event.currentTarget.contains(event.relatedTarget)) setPausado(false)
-			}}
-		>
-			<div className="hero__pista" aria-live={varias && !autoplay ? 'polite' : 'off'}>
-				{diapositivas.map((diapositiva, indice) => (
-					<Diapositiva key={diapositiva.id || indice} diapositiva={diapositiva} indice={indice} activa={indice === actual} total={total} />
-				))}
+		<div className="hero__medios">
+			<div className="hero__pista" aria-hidden="true">
+				{diapositivas.map((diapositiva, indice) => {
+					const activa = indice === actual
+					const primera = indice === 0
+					const { imagen } = diapositiva
+					const cargarVideo =
+						conVideos && diapositiva.tipo === 'video' && diapositiva.video && !videosFallidos.has(indice) && (activa || indice === siguiente)
+					return (
+						<div
+							key={diapositiva.id || indice}
+							className={[
+								'hero__fondo',
+								activa ? 'is-activa' : '',
+								diapositiva.tipo === 'imagen' && !sinMovimiento ? 'hero__fondo--zoom' : '',
+							]
+								.filter(Boolean)
+								.join(' ')}
+							style={{ '--posicion': imagen?.posicion || '50% 50%' }}
+						>
+							{imagen?.src && (primera || listo) && (
+								<img
+									src={imagen.src}
+									srcSet={imagen.srcset || undefined}
+									sizes="100vw"
+									alt=""
+									width={imagen.ancho || undefined}
+									height={imagen.alto || undefined}
+									loading={primera ? 'eager' : 'lazy'}
+									fetchPriority={primera ? 'high' : 'low'}
+									decoding={primera ? 'sync' : 'async'}
+								/>
+							)}
+							{cargarVideo && (
+								<video
+									ref={(nodo) => {
+										videos.current[indice] = nodo
+									}}
+									src={diapositiva.video}
+									poster={imagen?.src || undefined}
+									muted
+									playsInline
+									preload="auto"
+									disablePictureInPicture
+									tabIndex={-1}
+									onEnded={() => {
+										if (indice === actual) ir(actual + 1)
+									}}
+									onError={() => setVideosFallidos((previo) => new Set(previo).add(indice))}
+								/>
+							)}
+						</div>
+					)
+				})}
 			</div>
 
 			{varias && (
-				<>
-					<button type="button" className="hero__flecha hero__flecha--anterior" aria-label="Diapositiva anterior" onClick={() => ir(actual - 1)}>
-						<Chevron sentido="anterior" />
-					</button>
-					<button type="button" className="hero__flecha hero__flecha--siguiente" aria-label="Diapositiva siguiente" onClick={() => ir(actual + 1)}>
-						<Chevron sentido="siguiente" />
-					</button>
-					<div className="hero__puntos">
-						{diapositivas.map((diapositiva, indice) => (
+				<div
+					className="hero__controles contenedor"
+					role="group"
+					aria-roledescription="carrusel"
+					aria-label="Imágenes de la obra y del taller"
+					tabIndex={0}
+					onKeyDown={tecla}
+					onMouseEnter={() => setPausaHover(true)}
+					onMouseLeave={() => setPausaHover(false)}
+					onFocus={() => setPausaHover(true)}
+					onBlur={(event) => {
+						if (!event.currentTarget.contains(event.relatedTarget)) setPausaHover(false)
+					}}
+				>
+					<p className="hero__epigrafe" aria-live="polite">
+						<span key={actual} className="hero__epigrafe-texto">
+							{epigrafe}
+						</span>
+					</p>
+					<div className="hero__navegacion">
+						<button type="button" className="hero__flecha" aria-label="Imagen anterior" onClick={() => ir(actual - 1)}>
+							<Chevron sentido="anterior" />
+						</button>
+						<ol className="hero__indicadores">
+							{diapositivas.map((diapositiva, indice) => (
+								<li key={diapositiva.id || indice}>
+									<button
+										type="button"
+										className="hero__indicador"
+										aria-label={`Ir a la imagen ${indice + 1} de ${total}${diapositiva.tipo === 'video' ? ' (video)' : ''}`}
+										aria-current={indice === actual ? 'true' : undefined}
+										onClick={() => ir(indice)}
+									>
+										<span
+											className="hero__indicador-barra"
+											ref={(nodo) => {
+												barras.current[indice] = nodo
+											}}
+										/>
+									</button>
+								</li>
+							))}
+						</ol>
+						<button type="button" className="hero__flecha" aria-label="Imagen siguiente" onClick={() => ir(actual + 1)}>
+							<Chevron sentido="siguiente" />
+						</button>
+						{!sinMovimiento && (
 							<button
-								key={diapositiva.id || indice}
 								type="button"
-								className="hero__punto"
-								aria-label={`Ir a la diapositiva ${indice + 1} de ${total}`}
-								aria-current={indice === actual ? 'true' : undefined}
-								onClick={() => ir(indice)}
-							/>
-						))}
+								className="hero__pausa"
+								aria-label={pausaManual ? 'Reanudar el carrusel' : 'Pausar el carrusel'}
+								aria-pressed={pausaManual}
+								onClick={() => setPausaManual((valor) => !valor)}
+							>
+								<IconoPausa pausado={pausaManual} />
+							</button>
+						)}
 					</div>
-				</>
+				</div>
 			)}
 		</div>
 	)
