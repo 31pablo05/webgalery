@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 	- Video: silenciado, sin controles; dura lo que dura el clip y al terminar pasa a la siguiente.
 	  Solo se reproduce el video de la diapositiva activa; al salir se pausa y vuelve al inicio.
 	  El archivo se pide recién cuando la diapositiva activa o la siguiente es esa (nunca al cargar la página).
-	- Se pausa con el botón, con el mouse o el foco sobre los controles y con la pestaña oculta.
+	- Sin controles visibles. Se pausa con la pestaña oculta y con un botón que solo aparece con el teclado.
 	- Con movimiento reducido o ahorro de datos: sin autoplay, sin zoom y sin videos (se ve su póster).
 */
 
@@ -31,51 +31,22 @@ function usarPreferencias() {
 	return { reducido, ahorro }
 }
 
-function IconoPausa({ pausado }) {
-	return pausado ? (
-		<svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-			<path d="M3 1.5v9l7.5-4.5z" fill="currentColor" />
-		</svg>
-	) : (
-		<svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-			<path d="M3 1.5h2v9H3zM7 1.5h2v9H7z" fill="currentColor" />
-		</svg>
-	)
-}
-
-function Chevron({ sentido }) {
-	return (
-		<svg viewBox="0 0 14 28" aria-hidden="true" focusable="false">
-			<path
-				d={sentido === 'anterior' ? 'M12 2 2 14l10 12' : 'M2 2l10 12L2 26'}
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="1.1"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-			/>
-		</svg>
-	)
-}
-
 export default function HeroCarrusel({ diapositivas = [] }) {
 	const total = diapositivas.length
 	const [actual, setActual] = useState(0)
 	const [pausaManual, setPausaManual] = useState(false)
-	const [pausaHover, setPausaHover] = useState(false)
 	const [oculto, setOculto] = useState(false)
 	const [videosFallidos, setVideosFallidos] = useState(() => new Set())
 	const [listo, setListo] = useState(false)
 	const { reducido, ahorro } = usarPreferencias()
 
 	const videos = useRef([])
-	const barras = useRef([])
 	const transcurrido = useRef(0)
 
 	const varias = total > 1
 	const sinMovimiento = reducido
 	const conVideos = listo && !reducido && !ahorro
-	const pausado = pausaManual || pausaHover || oculto || sinMovimiento || !varias
+	const pausado = pausaManual || oculto || sinMovimiento || !varias
 
 	const actualDatos = diapositivas[actual]
 	const esVideoActivo = conVideos && actualDatos?.tipo === 'video' && !videosFallidos.has(actual)
@@ -121,7 +92,7 @@ export default function HeroCarrusel({ diapositivas = [] }) {
 		})
 	}, [actual, esVideoActivo, pausado, sinMovimiento])
 
-	// Reloj del carrusel: fotos por tiempo, videos por su duración. Pinta la barra de progreso.
+	// Reloj del carrusel: fotos por tiempo, videos por su duración.
 	useEffect(() => {
 		if (!varias) return undefined
 		let cuadro = 0
@@ -148,29 +119,13 @@ export default function HeroCarrusel({ diapositivas = [] }) {
 					return
 				}
 			}
-			const barra = barras.current[actual]
-			if (barra) barra.style.transform = `scaleX(${Math.min(1, Math.max(0, progreso))})`
 			cuadro = requestAnimationFrame(avanzar)
 		}
-		barras.current.forEach((barra, indice) => {
-			if (barra && indice !== actual) barra.style.transform = indice < actual ? 'scaleX(1)' : 'scaleX(0)'
-		})
 		cuadro = requestAnimationFrame(avanzar)
 		return () => cancelAnimationFrame(cuadro)
 	}, [actual, esVideoActivo, pausado, varias, ir])
 
 	if (!total) return null
-
-	function tecla(event) {
-		if (!varias) return
-		if (event.key === 'ArrowLeft') {
-			event.preventDefault()
-			ir(actual - 1)
-		} else if (event.key === 'ArrowRight') {
-			event.preventDefault()
-			ir(actual + 1)
-		}
-	}
 
 	// El archivo de video se pide cuando la diapositiva es la activa o la que sigue.
 	const siguiente = (actual + 1) % total
@@ -233,65 +188,28 @@ export default function HeroCarrusel({ diapositivas = [] }) {
 				})}
 			</div>
 
+			{/*
+				Sin controles visibles: el carrusel avanza solo. El epígrafe de la diapositiva queda abajo a la izquierda.
+				El botón de pausa es invisible y aparece solo con el teclado (Tab): todo lo que se mueve solo
+				más de 5 segundos tiene que poder pausarse (accesibilidad, WCAG 2.2.2).
+			*/}
 			{varias && (
-				<div
-					className="hero__controles contenedor"
-					role="group"
-					aria-roledescription="carrusel"
-					aria-label="Imágenes de la obra y del taller"
-					tabIndex={0}
-					onKeyDown={tecla}
-					onMouseEnter={() => setPausaHover(true)}
-					onMouseLeave={() => setPausaHover(false)}
-					onFocus={() => setPausaHover(true)}
-					onBlur={(event) => {
-						if (!event.currentTarget.contains(event.relatedTarget)) setPausaHover(false)
-					}}
-				>
-					<p className="hero__epigrafe" aria-live="polite">
+				<div className="hero__controles contenedor">
+					<p className="hero__epigrafe" aria-live="off">
 						<span key={actual} className="hero__epigrafe-texto">
 							{epigrafe}
 						</span>
 					</p>
-					<div className="hero__navegacion">
-						<button type="button" className="hero__flecha" aria-label="Imagen anterior" onClick={() => ir(actual - 1)}>
-							<Chevron sentido="anterior" />
+					{!sinMovimiento && (
+						<button
+							type="button"
+							className="hero__pausa-oculta"
+							aria-pressed={pausaManual}
+							onClick={() => setPausaManual((valor) => !valor)}
+						>
+							{pausaManual ? 'Reanudar el carrusel de imágenes' : 'Pausar el carrusel de imágenes'}
 						</button>
-						<ol className="hero__indicadores">
-							{diapositivas.map((diapositiva, indice) => (
-								<li key={diapositiva.id || indice}>
-									<button
-										type="button"
-										className="hero__indicador"
-										aria-label={`Ir a la imagen ${indice + 1} de ${total}${diapositiva.tipo === 'video' ? ' (video)' : ''}`}
-										aria-current={indice === actual ? 'true' : undefined}
-										onClick={() => ir(indice)}
-									>
-										<span
-											className="hero__indicador-barra"
-											ref={(nodo) => {
-												barras.current[indice] = nodo
-											}}
-										/>
-									</button>
-								</li>
-							))}
-						</ol>
-						<button type="button" className="hero__flecha" aria-label="Imagen siguiente" onClick={() => ir(actual + 1)}>
-							<Chevron sentido="siguiente" />
-						</button>
-						{!sinMovimiento && (
-							<button
-								type="button"
-								className="hero__pausa"
-								aria-label={pausaManual ? 'Reanudar el carrusel' : 'Pausar el carrusel'}
-								aria-pressed={pausaManual}
-								onClick={() => setPausaManual((valor) => !valor)}
-							>
-								<IconoPausa pausado={pausaManual} />
-							</button>
-						)}
-					</div>
+					)}
 				</div>
 			)}
 		</div>
